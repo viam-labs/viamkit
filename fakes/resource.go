@@ -128,10 +128,19 @@ func (r *Resource) Reconfigure(_ context.Context, _ resource.Dependencies, _ res
 // DoCommand records the call, then resolves the response in this
 // order: SetResponse / SetError for the matching verb → DoCommandFn
 // callback → resource.ErrDoUnimplemented.
+//
+// The "verb" in a DoCommand request is the top-level map key that
+// dispatches the handler. When the request map has multiple keys
+// (typical pattern: `{"verb": true, "arg_a": ..., "arg_b": ...}`),
+// the fake picks the key whose value matches a registered response
+// or error. Falls back to any registered key, then to the first
+// key. This is what real DoCommand dispatchers do — they look up
+// which key matches a known handler — and it makes the fake
+// deterministic regardless of Go's random map iteration order.
 func (r *Resource) DoCommand(ctx context.Context, cmd map[string]interface{}) (map[string]interface{}, error) {
 	r.doCommandCalls.Add(1)
-	verb := firstKey(cmd)
 	r.mu.Lock()
+	verb := r.resolveVerbLocked(cmd)
 	r.calls = append(r.calls, DoCommandCall{Verb: verb, Cmd: cmd})
 	resp, hasResp := r.responses[verb]
 	err, hasErr := r.errors[verb]
@@ -150,10 +159,24 @@ func (r *Resource) DoCommand(ctx context.Context, cmd map[string]interface{}) (m
 	return nil, fmt.Errorf("fakes.Resource: no response registered for verb %q", verb)
 }
 
-// firstKey returns the first key in the cmd map. Maps have no order
-// in Go, so for cmds with multiple keys this is a best-effort
-// heuristic — fine for the typical {"verb": true, "arg1": ...} shape.
-func firstKey(cmd map[string]interface{}) string {
+// resolveVerbLocked picks the dispatch key for a request map. Prefers
+// a key that has a registered response or error (so multi-key
+// requests like `{"verb": true, "args": ...}` dispatch deterministically
+// regardless of Go's random map iteration order). Falls back to any
+// key if no match.
+//
+// Caller must hold r.mu.
+func (r *Resource) resolveVerbLocked(cmd map[string]interface{}) string {
+	for k := range cmd {
+		if _, ok := r.responses[k]; ok {
+			return k
+		}
+		if _, ok := r.errors[k]; ok {
+			return k
+		}
+	}
+	// No registered match — return any key so the unregistered-verb
+	// error path can report a meaningful name.
 	for k := range cmd {
 		return k
 	}
