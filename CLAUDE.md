@@ -18,6 +18,8 @@ Each package owns one concern. They compose; they don't depend on each other exc
 | `kinematics` | Pure motion-planning helpers: `YawFromOrientation`, `LastTrajectoryJoints` / `TrajectoryToJointPath` (typed + gRPC trajectory shapes), `InterpolateJointPath`, `FriendlyPlannerError`. |
 | `fakes` | In-process programmable fakes for Go unit tests: `Gripper`, `Arm`, `Vision`, `Switch`, `Resource` (DoCommand-only). Per-method `Fn` overrides, atomic call counters, scriptable responses. |
 | `watchdog` | Background-poller-with-cancel pattern. `Check` returns Healthy / Lost / Transient; OnFail fires on Lost; OnTransient logs and continues; ShouldExit for clean termination. |
+| `viz` | `commonpb.Transform` builders for WorldStateStore producers (the live 3D scene viewer). `Box`, `Sphere`, `Capsule`, `Point` structs each with `ToTransform()`. Pose ↔ proto converters. `Removal(uuid)` helper for stream removals. |
+| `worldstate` | `referenceframe.WorldState` composition for motion planning: `NewBoxObstacle` / `NewSphereObstacle` geometry constructors, `HeldObject` for gripper-frame attached objects, `WorldObstacles` for the "all in world frame" common case, `Combined` to merge static + dynamic. |
 
 ## Versioning + release flow
 
@@ -37,6 +39,8 @@ Version bumps so far:
 - **v0.4.0** — `kinematics`
 - **v0.5.0** — `watchdog`, expanded `fakes` (Arm, Vision, Switch)
 - **v0.6.0** — slimmed `contracts` to just codec helpers; workcell-specific verb constants and response structs moved to consumer modules (palletizer's `wire_types.go`)
+- **v0.6.1** — `fakes.Resource` deterministic verb dispatch for multi-key requests
+- **v0.7.0** — `viz` (WorldStateStore Transform builders) + `worldstate` (motion-planner WorldState composition)
 
 ## Design conventions
 

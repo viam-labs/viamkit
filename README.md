@@ -136,10 +136,10 @@ Packages slated for extraction from the palletizer / pack-sequencer code. Each i
 | `watchdog` | **shipped** | Background-poller-with-cancel pattern. Polls a Check function at interval; on `Lost` triggers `OnFail` and exits; on `Transient` logs and continues. `ShouldExit` predicate for clean termination when watching is no longer needed. |
 | `cycle` | **shipped** | Per-cycle duration tracker with rolling N-cycle stats (min/max/mean/p50/p95). Start/End/Cancel for the in-flight cycle; pairs naturally with statemachine's OnEntry/OnExit hooks. |
 | `kinematics` | **shipped** | Pure motion-planning helpers: `YawFromOrientation`, `LastTrajectoryJoints` / `TrajectoryToJointPath` (handle both typed Go and gRPC trajectory shapes), `InterpolateJointPath`, `FriendlyPlannerError` (raw planner error → human-readable explanation). |
+| `viz` | **shipped** | `commonpb.Transform` builders for `WorldStateStore` producers — the live 3D scene viewer side. `Box`, `Sphere`, `Capsule`, `Point` structs each with `ToTransform()`. `PoseToProto` / `PoseFromProto` for the wire-format pose. `Removal(uuid)` for stream removals. |
+| `worldstate` | **shipped** | `referenceframe.WorldState` composition for motion planning: `NewBoxObstacle` / `NewSphereObstacle` geometry constructors, `HeldObject` for gripper-frame attached objects, `WorldObstacles` for the common "all in world frame" pattern, `Combined` to merge both into a single WorldState. |
 | `docommand` | planned | Generic verb-table dispatcher. The `cmdHandlers []{key, handler}` pattern from the palletizer. ~30 LOC of helper, big DX win. |
 | `verify` | planned | "Plan but don't execute" wrapper around motion service `DoPlan`, with feasibility reporting and downsampled trajectory return. Useful for any motion-heavy module. |
-| `worldstate` | planned | Held-object-attached-to-gripper composition; placed-obstacle list builder + caching pattern. |
-| `viz` | planned | `commonpb.Transform` builders for WorldStateStore producers — the live 3D scene side. |
 | `fakes` (Motion) | partial | `Gripper`, `Arm`, `Vision`, `Switch`, `Resource` shipped; `Motion` (huge interface — Move, GetPose, MoveOnGlobe, plan-history, etc.) to follow when a real test needs it. |
 
 ## Local development
