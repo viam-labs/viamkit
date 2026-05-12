@@ -7,6 +7,8 @@ import (
 
 	"go.viam.com/rdk/components/generic"
 	"go.viam.com/rdk/components/gripper"
+	"go.viam.com/rdk/referenceframe"
+	"go.viam.com/rdk/vision/classification"
 )
 
 func TestGripperDefaults(t *testing.T) {
@@ -86,6 +88,96 @@ func TestResourceSetError(t *testing.T) {
 	_, err := r.DoCommand(context.Background(), map[string]interface{}{"next_box": true})
 	if !errors.Is(err, want) {
 		t.Errorf("DoCommand: got %v, want %v", err, want)
+	}
+}
+
+func TestArmDefaults(t *testing.T) {
+	a := NewArm("test")
+	ctx := context.Background()
+
+	joints, err := a.JointPositions(ctx, nil)
+	if err != nil || len(joints) != 6 {
+		t.Errorf("default JointPositions: got %v (err=%v), want 6 zeros", joints, err)
+	}
+	pose, err := a.EndPosition(ctx, nil)
+	if err != nil || pose == nil {
+		t.Errorf("default EndPosition: got %v (err=%v)", pose, err)
+	}
+	if a.EndPositionCalls() != 1 || a.JointPositionsCalls() != 1 {
+		t.Errorf("call counts: end=%d joints=%d", a.EndPositionCalls(), a.JointPositionsCalls())
+	}
+}
+
+func TestArmMoveToJointPositionsUpdatesState(t *testing.T) {
+	a := NewArm("test")
+	target := []referenceframe.Input{1, 2, 3, 4, 5, 6}
+	if err := a.MoveToJointPositions(context.Background(), target, nil); err != nil {
+		t.Fatal(err)
+	}
+	got := a.LastMoveToJointPositions()
+	if len(got) != 6 || got[3] != 4 {
+		t.Errorf("LastMoveToJointPositions: got %v, want %v", got, target)
+	}
+	// Subsequent JointPositions reflects the move (mirrors real arm behavior).
+	now, _ := a.JointPositions(context.Background(), nil)
+	if len(now) != 6 || now[3] != 4 {
+		t.Errorf("JointPositions after move: got %v, want %v", now, target)
+	}
+}
+
+func TestSwitchSetPositionCaptured(t *testing.T) {
+	s := NewSwitch("home-switch")
+	if err := s.SetPosition(context.Background(), 2, nil); err != nil {
+		t.Fatal(err)
+	}
+	if s.LastSetPosition() != 2 {
+		t.Errorf("LastSetPosition: got %d, want 2", s.LastSetPosition())
+	}
+	pos, _ := s.GetPosition(context.Background(), nil)
+	if pos != 2 {
+		t.Errorf("GetPosition after Set: got %d, want 2", pos)
+	}
+}
+
+func TestSwitchDoCommandForCfg(t *testing.T) {
+	// Simulate the arm-position-saver's saved-joints retrieval.
+	s := NewSwitch("home-switch")
+	wantJoints := []float64{0.1, 0.2, 0.3, 0.4, 0.5, 0.6}
+	s.DoCommandFn = func(_ context.Context, cmd map[string]interface{}) (map[string]interface{}, error) {
+		if _, ok := cmd["cfg"]; !ok {
+			return nil, nil
+		}
+		out := make([]interface{}, len(wantJoints))
+		for i, v := range wantJoints {
+			out[i] = v
+		}
+		return map[string]interface{}{"joints": out}, nil
+	}
+	resp, err := s.DoCommand(context.Background(), map[string]interface{}{"cfg": true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, _ := resp["joints"].([]interface{})
+	if len(got) != 6 {
+		t.Errorf("joints len: got %d, want 6", len(got))
+	}
+}
+
+func TestVisionClassificationsFromCameraIsScriptable(t *testing.T) {
+	v := NewVision("classifier")
+	if cls, _ := v.ClassificationsFromCamera(context.Background(), "camera", 1, nil); cls != nil {
+		t.Errorf("default ClassificationsFromCamera: got %v, want nil", cls)
+	}
+	called := false
+	v.ClassificationsFromCameraFn = func(_ context.Context, _ string, _ int, _ map[string]interface{}) (classification.Classifications, error) {
+		called = true
+		return classification.Classifications{
+			classification.NewClassification(0.95, "box"),
+		}, nil
+	}
+	cls, err := v.ClassificationsFromCamera(context.Background(), "camera", 1, nil)
+	if err != nil || !called || len(cls) != 1 {
+		t.Errorf("scripted ClassificationsFromCamera: got cls=%v err=%v called=%v", cls, err, called)
 	}
 }
 
