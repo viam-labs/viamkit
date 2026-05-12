@@ -20,6 +20,7 @@ Each package owns one concern. They compose; they don't depend on each other exc
 | `watchdog` | Background-poller-with-cancel pattern. `Check` returns Healthy / Lost / Transient; OnFail fires on Lost; OnTransient logs and continues; ShouldExit for clean termination. |
 | `viz` | `commonpb.Transform` builders for WorldStateStore producers (the live 3D scene viewer). `Box`, `Sphere`, `Capsule`, `Point` structs each with `ToTransform()`. Pose ↔ proto converters. `Removal(uuid)` helper for stream removals. |
 | `worldstate` | `referenceframe.WorldState` composition for motion planning: `NewBoxObstacle` / `NewSphereObstacle` geometry constructors, `HeldObject` for gripper-frame attached objects, `WorldObstacles` for the "all in world frame" common case, `Combined` to merge static + dynamic. |
+| `verify` | "Plan but don't execute" wrapper around the motion service's `DoCommand("plan", ...)` path. `MarshalPlanRequest` + `ParsePlanResponse` + `Plan` convenience. `TrajectoryToEEPoses` for FK-based trajectory rendering. Encapsulates SDK quirks (the "plan" vs "DoPlan" key, partial-plan format, multi-shape trajectory keys). |
 
 ## Versioning + release flow
 
@@ -41,6 +42,7 @@ Version bumps so far:
 - **v0.6.0** — slimmed `contracts` to just codec helpers; workcell-specific verb constants and response structs moved to consumer modules (palletizer's `wire_types.go`)
 - **v0.6.1** — `fakes.Resource` deterministic verb dispatch for multi-key requests
 - **v0.7.0** — `viz` (WorldStateStore Transform builders) + `worldstate` (motion-planner WorldState composition)
+- **v0.8.0** — `verify` (motion-service plan-only wrapper + trajectory FK helper)
 
 ## Design conventions
 

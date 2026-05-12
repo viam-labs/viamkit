@@ -138,8 +138,8 @@ Packages slated for extraction from the palletizer / pack-sequencer code. Each i
 | `kinematics` | **shipped** | Pure motion-planning helpers: `YawFromOrientation`, `LastTrajectoryJoints` / `TrajectoryToJointPath` (handle both typed Go and gRPC trajectory shapes), `InterpolateJointPath`, `FriendlyPlannerError` (raw planner error → human-readable explanation). |
 | `viz` | **shipped** | `commonpb.Transform` builders for `WorldStateStore` producers — the live 3D scene viewer side. `Box`, `Sphere`, `Capsule`, `Point` structs each with `ToTransform()`. `PoseToProto` / `PoseFromProto` for the wire-format pose. `Removal(uuid)` for stream removals. |
 | `worldstate` | **shipped** | `referenceframe.WorldState` composition for motion planning: `NewBoxObstacle` / `NewSphereObstacle` geometry constructors, `HeldObject` for gripper-frame attached objects, `WorldObstacles` for the common "all in world frame" pattern, `Combined` to merge both into a single WorldState. |
+| `verify` | **shipped** | "Plan but don't execute" wrapper around the motion service's `DoCommand("plan", ...)` path. `MarshalPlanRequest` builds the JSON payload (handles start_state hand-rolling); `ParsePlanResponse` extracts feasibility + trajectory (handles partial-plan / multi-key shape variations); `Plan` is the convenience wrapper. `TrajectoryToEEPoses` runs FK on a trajectory for client-side polyline rendering. |
 | `docommand` | planned | Generic verb-table dispatcher. The `cmdHandlers []{key, handler}` pattern from the palletizer. ~30 LOC of helper, big DX win. |
-| `verify` | planned | "Plan but don't execute" wrapper around motion service `DoPlan`, with feasibility reporting and downsampled trajectory return. Useful for any motion-heavy module. |
 | `fakes` (Motion) | partial | `Gripper`, `Arm`, `Vision`, `Switch`, `Resource` shipped; `Motion` (huge interface — Move, GetPose, MoveOnGlobe, plan-history, etc.) to follow when a real test needs it. |
 
 ## Local development
