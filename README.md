@@ -130,8 +130,8 @@ Packages slated for extraction from the palletizer / pack-sequencer code. Each i
 | `lifecycle` | **shipped** | Two-context pattern: a cancellable loop context (Stop/EnsureLive/Ctx) plus on-demand cleanup contexts (CleanupCtx, CtxOrCleanup) bounded by timeout. Drop-in for the `cancelCtx + cancelFunc + cleanupCtx()` triad most modules end up writing. |
 | `fakes` | **shipped** | Programmable in-process fakes for unit-testing modules without viam-server: `Gripper` (satisfies gripper.Gripper, overridable per method, atomic call counters), `Resource` (DoCommand-only fake with verb-keyed responses and a call log). |
 | `cycle` | **shipped** | Per-cycle duration tracker with rolling N-cycle stats (min/max/mean/p50/p95). Start/End/Cancel for the in-flight cycle; pairs naturally with statemachine's OnEntry/OnExit hooks. |
+| `kinematics` | **shipped** | Pure motion-planning helpers: `YawFromOrientation`, `LastTrajectoryJoints` / `TrajectoryToJointPath` (handle both typed Go and gRPC trajectory shapes), `InterpolateJointPath`, `FriendlyPlannerError` (raw planner error → human-readable explanation). |
 | `docommand` | planned | Generic verb-table dispatcher. The `cmdHandlers []{key, handler}` pattern from the palletizer. ~30 LOC of helper, big DX win. |
-| `kinematics` | planned | Pure helpers: `yawFromOrientation`, joint-delta computation for base/wrist rotation, `pickTrajectory` / `lastTrajectoryJoints` / `trajectoryToJointPath` (both typed and gRPC trajectory shapes), `interpolateJointPath`, `friendlyPlannerError`. |
 | `verify` | planned | "Plan but don't execute" wrapper around motion service `DoPlan`, with feasibility reporting and downsampled trajectory return. Useful for any motion-heavy module. |
 | `worldstate` | planned | Held-object-attached-to-gripper composition; placed-obstacle list builder + caching pattern. |
 | `viz` | planned | `commonpb.Transform` builders for WorldStateStore producers — the live 3D scene side. |
