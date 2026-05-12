@@ -128,6 +128,7 @@ Packages slated for extraction from the palletizer / pack-sequencer code. Each i
 |---|---|---|
 | `statemachine` | **shipped** | Generic finite state machine over a typed state set. Handlers per state, terminals, optional error state routing, step/goto/reset for testing and operator UIs, OnTransition hook for logging and metrics. |
 | `lifecycle` | **shipped** | Two-context pattern: a cancellable loop context (Stop/EnsureLive/Ctx) plus on-demand cleanup contexts (CleanupCtx, CtxOrCleanup) bounded by timeout. Drop-in for the `cancelCtx + cancelFunc + cleanupCtx()` triad most modules end up writing. |
+| `fakes` | **shipped** | Programmable in-process fakes for unit-testing modules without viam-server: `Gripper` (satisfies gripper.Gripper, overridable per method, atomic call counters), `Resource` (DoCommand-only fake with verb-keyed responses and a call log). |
 | `docommand` | planned | Generic verb-table dispatcher. The `cmdHandlers []{key, handler}` pattern from the palletizer. ~30 LOC of helper, big DX win. |
 | `kinematics` | planned | Pure helpers: `yawFromOrientation`, joint-delta computation for base/wrist rotation, `pickTrajectory` / `lastTrajectoryJoints` / `trajectoryToJointPath` (both typed and gRPC trajectory shapes), `interpolateJointPath`, `friendlyPlannerError`. |
 | `cycle` | planned | Cycle-time tracking: per-cycle durations, rolling N-cycle stats, last/avg/p95. Status-output ready. |
@@ -135,7 +136,7 @@ Packages slated for extraction from the palletizer / pack-sequencer code. Each i
 | `worldstate` | planned | Held-object-attached-to-gripper composition; placed-obstacle list builder + caching pattern. |
 | `viz` | planned | `commonpb.Transform` builders for WorldStateStore producers — the live 3D scene side. |
 | `watchdog` | planned | Background-goroutine pattern: poll a condition, cancel the main op on failure. |
-| `fakes` | planned | Test fixtures: fake arm, gripper, vision, switch. Lets module authors write integration tests without hardware. |
+| `fakes` (expand) | partial | `Gripper` and `Resource` shipped; `Arm`, `Vision`, `Motion`, `Switch` to follow as tests need them. |
 
 ## Local development
 
