@@ -23,26 +23,30 @@ back := geom.PoseFrom(p) // spatialmath.Pose → flat struct
 
 ### `contracts`
 
-Typed Go structs for cross-module DoCommand verbs, plus codec helpers. DoCommand at the protocol level is `map[string]interface{}` over gRPC, but consumers can build/parse it through structs for compile-time safety.
+Generic codec helpers for the Viam DoCommand wire format. DoCommand at the protocol level is `map[string]interface{}` over gRPC; these helpers let consumers build and parse it through their own typed structs for compile-time safety.
 
-- `ToMap(v)` — struct → wire map.
+- `ToMap(v)` — struct → wire map (via JSON tags).
 - `FromMap[T](m)` — wire map → typed struct (generic).
-- `MustToMap(v)` — panic-on-error variant for well-known producer types.
-- Verb constants for every pack-sequencer + pick-station command.
-- Typed structs for `next_box`, `report_placement` (args + response), `get_box_dims`.
+- `MustToMap(v)` — panic-on-error variant.
+
+No module-specific types. Each consumer defines its own request / response structs, dispatched through these helpers:
 
 ```go
 import "github.com/viam-labs/viamkit/contracts"
 
-// Producer (pack-sequencer):
-return contracts.ToMap(contracts.GetBoxDimsResponse{
-    BoxLengthMM: 200, BoxWidthMM: 100, BoxHeightMM: 80,
-})
+// Define your wire types in your own module (palletizer, etc.):
+type NextBoxResponse struct {
+    Seq               int     `json:"seq"`
+    PlaceEndInWorld   Pose6D  `json:"place_end_in_world"`
+    IsComplete        bool    `json:"is_complete"`
+}
 
-// Consumer (palletizer):
-respMap, _ := svc.DoCommand(ctx, map[string]any{contracts.VerbGetBoxDims: true})
-dims, _ := contracts.FromMap[contracts.GetBoxDimsResponse](respMap)
-boxL := dims.BoxLengthMM
+// Consumer side:
+respMap, _ := svc.DoCommand(ctx, map[string]any{"next_box": true})
+resp, _ := contracts.FromMap[NextBoxResponse](respMap)
+
+// Producer side:
+return contracts.ToMap(NextBoxResponse{Seq: 5, IsComplete: false, ...})
 ```
 
 ### `statemachine`

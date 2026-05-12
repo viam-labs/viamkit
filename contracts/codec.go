@@ -1,23 +1,33 @@
-// Package contracts holds typed Go structs that describe the
-// DoCommand wire format between workcell modules — palletizer ↔
-// pack-sequencer ↔ pick-station.
+// Package contracts holds codec helpers for Viam DoCommand wire
+// format. DoCommand at the protocol level is just
+// `map[string]interface{}` over gRPC; defining typed Go structs that
+// describe the wire shape lets producers and consumers refer to the
+// contract by name instead of probing map keys, and lets the compiler
+// catch typos before they reach a running module.
 //
-// DoCommand at the protocol layer is just `map[string]interface{}` over
-// gRPC, so the structs are a compile-time aid: producers `ToMap(struct)`
-// to build a return value, consumers `FromMap[T](respMap)` to parse one.
-// JSON struct tags drive the wire field names.
+// This package is intentionally generic — it has no module-specific
+// types or verb constants. Each consuming module defines its own
+// request / response structs and dispatches them through ToMap /
+// FromMap[T].
 //
-// Each verb has a string constant for the dispatch key, a Request type
-// (omit for verbs that take no args beyond the selector), and a Response
-// type. Adding a new verb means: add the constant, add the structs,
-// import them on both sides. The compiler then catches every typo.
+// Typical use:
+//
+//	// Producer side: build a typed response, marshal to wire shape.
+//	resp, err := contracts.ToMap(MyResponse{X: 1, Y: 2})
+//	return resp, err
+//
+//	// Consumer side: receive a wire map, parse to typed struct.
+//	respMap, err := svc.DoCommand(ctx, map[string]any{"my_verb": true})
+//	if err != nil { return err }
+//	got, err := contracts.FromMap[MyResponse](respMap)
 package contracts
 
 import "encoding/json"
 
 // ToMap converts a struct to the map[string]interface{} shape Viam
-// DoCommand carries on the wire. Returns an error only on JSON marshal
-// failure (e.g. unsupported field types).
+// DoCommand carries on the wire. JSON struct tags drive the field
+// names. Returns an error only on JSON marshal failure (e.g.
+// unsupported field types).
 func ToMap(v any) (map[string]interface{}, error) {
 	b, err := json.Marshal(v)
 	if err != nil {
@@ -30,8 +40,8 @@ func ToMap(v any) (map[string]interface{}, error) {
 	return out, nil
 }
 
-// MustToMap is ToMap that panics on error. Useful for cases where the
-// input is a well-known struct and a marshal failure is a programmer bug.
+// MustToMap is ToMap that panics on error. Useful when the input is a
+// well-known struct and a marshal failure is a programmer bug.
 func MustToMap(v any) map[string]interface{} {
 	m, err := ToMap(v)
 	if err != nil {
@@ -40,8 +50,8 @@ func MustToMap(v any) map[string]interface{} {
 	return m
 }
 
-// FromMap parses a DoCommand wire map into a typed struct. The generic
-// type parameter selects which struct shape to decode into.
+// FromMap parses a DoCommand wire map into a typed struct. The
+// generic type parameter selects which struct shape to decode into.
 func FromMap[T any](m map[string]interface{}) (T, error) {
 	var zero T
 	b, err := json.Marshal(m)

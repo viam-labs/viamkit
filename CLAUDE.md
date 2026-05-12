@@ -11,7 +11,7 @@ Each package owns one concern. They compose; they don't depend on each other exc
 | Pkg | One-liner |
 |---|---|
 | `geom` | `Pose6D`, `Vec3D` + converters to `spatialmath.Pose` / `r3.Vector`. The JSON-serializable shapes the SDK doesn't ship. |
-| `contracts` | Typed Go structs for cross-module DoCommand verbs. `ToMap` / `FromMap[T]` codec helpers. Currently typed: `next_box`, `report_placement`, `get_box_dims`. Verb constants for the full pack-sequencer + pick-station surface. |
+| `contracts` | Generic codec helpers for the Viam DoCommand wire format: `ToMap` / `FromMap[T]` / `MustToMap`. No module-specific types — each consumer defines its own request/response structs and dispatches through these helpers. |
 | `lifecycle` | Two-context pattern: cancellable loop ctx (`Stop`, `EnsureLive`, `Ctx`) + timeout-bounded cleanup ctx (`CleanupCtx`, `CtxOrCleanup`). Drop-in for the `cancelCtx + cancelFunc + cleanupCtx()` quartet most modules end up writing. |
 | `statemachine` | Generic FSM over a typed state set. `Run` / `Step` / `Goto` / `Reset`. `WithHandlers(map)` declarative dispatch. `WithErrorState` + `WithOnEntry` / `WithOnExit` / `OnTransition` lifecycle hooks. `TimeInState` / `TimeInCycle` / `TimeSinceState` / `IsDone` accessors. |
 | `cycle` | Per-cycle duration tracker + rolling stats (min/max/mean/p50/p95). Pairs with `statemachine`'s OnEntry/OnExit hooks. |
@@ -36,6 +36,7 @@ Version bumps so far:
 - **v0.3.0** — `cycle`
 - **v0.4.0** — `kinematics`
 - **v0.5.0** — `watchdog`, expanded `fakes` (Arm, Vision, Switch)
+- **v0.6.0** — slimmed `contracts` to just codec helpers; workcell-specific verb constants and response structs moved to consumer modules (palletizer's `wire_types.go`)
 
 ## Design conventions
 
