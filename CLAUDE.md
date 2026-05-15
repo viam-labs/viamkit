@@ -18,7 +18,8 @@ Each package owns one concern. They compose; they don't depend on each other exc
 | `kinematics` | Pure motion-planning helpers: `YawFromOrientation`, `LastTrajectoryJoints` / `TrajectoryToJointPath` (typed + gRPC trajectory shapes), `InterpolateJointPath`, `FriendlyPlannerError`. |
 | `fakes` | In-process programmable fakes for Go unit tests: `Gripper`, `Arm`, `Vision`, `Switch`, `Resource` (DoCommand-only). Per-method `Fn` overrides, atomic call counters, scriptable responses. |
 | `watchdog` | Background-poller-with-cancel pattern. `Check` returns Healthy / Lost / Transient; OnFail fires on Lost; OnTransient logs and continues; ShouldExit for clean termination. |
-| `viz` | `commonpb.Transform` builders for WorldStateStore producers (the live 3D scene viewer). `Box`, `Sphere`, `Capsule`, `Point` structs each with `ToTransform()`. Pose ↔ proto converters. `Removal(uuid)` helper for stream removals. |
+| `viz` | `commonpb.Transform` builders for WorldStateStore producers (the live 3D scene viewer). `Box`, `Sphere`, `Capsule`, `Point` structs each with `ToTransform()` (each carries an optional `Color`). Pose ↔ proto converters. `Removal(uuid)` for stream removals. `Store` + `NewStoreService` for the in-memory WSS-service backing. `TrajectoryTransforms` / `TrajectoryUUIDs` for plan-preview chains. |
+| `viz/axes` | Pre-styled coordinate-axis triad publisher. One call returns three colored capsule Transforms at an origin pose. Useful for arm-base / per-component frame visualization. |
 | `worldstate` | `referenceframe.WorldState` composition for motion planning: `NewBoxObstacle` / `NewSphereObstacle` geometry constructors, `HeldObject` for gripper-frame attached objects, `WorldObstacles` for the "all in world frame" common case, `Combined` to merge static + dynamic. |
 | `verify` | "Plan but don't execute" wrapper around the motion service's `DoCommand("plan", ...)` path. `MarshalPlanRequest` + `ParsePlanResponse` + `Plan` convenience. `TrajectoryToEEPoses` for FK-based trajectory rendering. Encapsulates SDK quirks (the "plan" vs "DoPlan" key, partial-plan format, multi-shape trajectory keys). |
 
@@ -44,6 +45,7 @@ Version bumps so far:
 - **v0.7.0** — `viz` (WorldStateStore Transform builders) + `worldstate` (motion-planner WorldState composition)
 - **v0.8.0** — `verify` (motion-service plan-only wrapper + trajectory FK helper)
 - **v0.9.0** — `viz.Color` + Color fields on Box/Sphere/Capsule. ToTransform() serializes into `Transform.Metadata.color` / `Metadata.opacity` (the Viam 3D scene renderer's color convention). Zero-value Color = unset, renderer default applies.
+- **v0.10.0** — `statemachine.Machine.RequestExit(state, reason)` (folds the watchdog-driven `forcedExitState ↔ runLoop` pattern from the palletizer into the FSM itself), `viz.TrajectoryTransforms` + `viz.TrajectoryUUIDs` (trajectory-preview waypoints as Sphere transforms — the load-bearing plan-preview piece flagged in the 2026-05-14 dryrun), `viz/axes` subpackage (one-line X/Y/Z triad publisher), `viz.Store` + `viz.NewStoreService` (ready-to-register `worldstatestore.Service` backed by an in-memory Transform map — drops the ~150 LoC WSS-producer dance to ~20).
 
 ## Design conventions
 

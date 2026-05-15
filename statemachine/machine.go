@@ -107,6 +107,16 @@ type Machine[S comparable] struct {
 	// constructor (initial state needs entry), by transitionLocked
 	// after every real transition, and by Goto/Reset.
 	needsOnEntry bool
+
+	// exitRequest holds a pending RequestExit. hasExitRequest gates
+	// the value so the zero S value isn't ambiguous (a caller might
+	// legitimately request the zero state). exitReason is reported
+	// on LastError() when the request is honored — typically a
+	// watchdog supplies "seal lost mid-transit" or similar so the
+	// operator UI can show *why* the loop was redirected.
+	exitRequest    S
+	exitReason     error
+	hasExitRequest bool
 }
 
 // New constructs a Machine starting in the given initial state.
@@ -224,7 +234,27 @@ func (m *Machine[S]) Run(ctx context.Context) error {
 		}
 
 		next, err := handler(ctx)
-		if err != nil {
+
+		// RequestExit overrides whatever the handler decided. The
+		// canonical use case: a background watchdog detects a
+		// runtime fault, cancels the loop's context (handler returns
+		// promptly with ctx.Canceled), and wants the machine to
+		// land in StateError instead of unwinding to "no state
+		// change." Honoring the request here means the machine ends
+		// in the requested state before ctx.Err() exits the loop.
+		if exit, reason, requested := m.takeExitRequest(); requested {
+			if reason != nil {
+				m.mu.Lock()
+				m.lastErr = reason
+				m.mu.Unlock()
+			} else if err != nil {
+				m.mu.Lock()
+				m.lastErr = err
+				m.mu.Unlock()
+			}
+			next = exit
+			err = nil // routed to the requested state instead
+		} else if err != nil {
 			if errors.Is(err, context.Canceled) || ctx.Err() != nil {
 				return nil
 			}
@@ -362,7 +392,23 @@ func (m *Machine[S]) Step(ctx context.Context) error {
 	}
 
 	next, err := handler(ctx)
-	if err != nil {
+
+	// RequestExit semantics in Step mirror Run: a pending request
+	// overrides the handler's decision and lands the machine at the
+	// requested state. Reason (if any) goes on LastError.
+	if exit, reason, requested := m.takeExitRequest(); requested {
+		if reason != nil {
+			m.mu.Lock()
+			m.lastErr = reason
+			m.mu.Unlock()
+		} else if err != nil {
+			m.mu.Lock()
+			m.lastErr = err
+			m.mu.Unlock()
+		}
+		next = exit
+		err = nil
+	} else if err != nil {
 		m.recordErrorAndRoute(err)
 		return err
 	}
@@ -379,6 +425,55 @@ func (m *Machine[S]) Step(ctx context.Context) error {
 	m.mu.Unlock()
 	fire()
 	return nil
+}
+
+// RequestExit asks the machine to transition to `state` at its next
+// checkpoint — after the currently-running handler returns. The
+// returned state from that handler is discarded and replaced with
+// `state`. Useful when a background goroutine (watchdog, health check,
+// operator panic-stop) needs to redirect the loop without violating
+// the "no Goto during Run" invariant.
+//
+// `reason` is an optional error that gets recorded on LastError so an
+// operator UI can show *why* the redirect happened — typical use:
+// a watchdog passes `errors.New("seal lost mid-transit")`. If `reason`
+// is nil and the handler returned a non-nil error, that handler error
+// is recorded instead; otherwise LastError is left as-is.
+//
+// Pair RequestExit with cancelling the handler's context (e.g. via
+// lifecycle.Stop) — RequestExit alone only stages the transition; it
+// doesn't interrupt an in-flight handler. The combined idiom in a
+// watchdog handler is:
+//
+//	m.RequestExit(StateError, errors.New("seal lost"))
+//	lifecycle.Stop()
+//
+// If called multiple times before being honored, the most recent call
+// wins. Cleared automatically once the redirect is applied.
+func (m *Machine[S]) RequestExit(state S, reason error) {
+	m.mu.Lock()
+	m.exitRequest = state
+	m.exitReason = reason
+	m.hasExitRequest = true
+	m.mu.Unlock()
+}
+
+// takeExitRequest atomically retrieves and clears any pending
+// RequestExit. The boolean is true if one was pending.
+func (m *Machine[S]) takeExitRequest() (S, error, bool) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if !m.hasExitRequest {
+		var zero S
+		return zero, nil, false
+	}
+	state := m.exitRequest
+	reason := m.exitReason
+	m.hasExitRequest = false
+	m.exitReason = nil
+	var zero S
+	m.exitRequest = zero
+	return state, reason, true
 }
 
 // Goto forces the current state without running the destination's
@@ -416,6 +511,12 @@ func (m *Machine[S]) Reset() error {
 	}
 	m.lastErr = nil
 	m.cycleStartedAt = time.Time{} // next Run starts a fresh cycle
+	// A pending RequestExit from a prior cycle is stale by definition
+	// — drop it so the new cycle starts clean.
+	m.hasExitRequest = false
+	m.exitReason = nil
+	var zero S
+	m.exitRequest = zero
 	fire := m.transitionLocked(m.initial)
 	// transitionLocked sets needsOnEntry only when the state actually
 	// changes. Reset semantics ("treat as a fresh start") imply we

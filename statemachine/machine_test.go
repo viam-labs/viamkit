@@ -729,3 +729,166 @@ func TestTimeSinceState(t *testing.T) {
 		t.Errorf("TimeSinceState(current) ≈ TimeInState; got delta=%v", delta)
 	}
 }
+
+// TestRequestExitRedirectsHandlerReturn — watchdog-style use case: a
+// background goroutine wants the machine to land at sErr regardless
+// of what the in-flight handler returns.
+func TestRequestExitRedirectsHandlerReturn(t *testing.T) {
+	m := New(sIdle,
+		// Handler returns sDone — but RequestExit should override.
+		WithHandler(sIdle, func(_ context.Context) (S, error) {
+			return sDone, nil
+		}),
+		WithHandler(sErr, okHandler(sDone)),
+		WithTerminal(sDone),
+	)
+	m.RequestExit(sErr, errors.New("watchdog: seal lost"))
+	_ = m.Run(context.Background())
+	// Should have routed through sErr (which forwards to sDone).
+	if got := m.Current(); got != sDone {
+		t.Errorf("Current after redirected Run: got %q, want %q", got, sDone)
+	}
+	if got := m.LastError(); got == nil || got.Error() != "watchdog: seal lost" {
+		t.Errorf("LastError after RequestExit: got %v, want %q", got, "watchdog: seal lost")
+	}
+}
+
+// TestRequestExitOverridesCancelledHandler — the realistic palletizer
+// scenario: a watchdog cancels the loop ctx (handler returns
+// ctx.Canceled), then RequestExit redirects. The machine should land
+// in sErr instead of unwinding with no state change.
+func TestRequestExitOverridesCancelledHandler(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	handlerEntered := make(chan struct{}, 1)
+	m := New(sIdle,
+		WithHandler(sIdle, func(c context.Context) (S, error) {
+			handlerEntered <- struct{}{}
+			<-c.Done()
+			return "", c.Err()
+		}),
+		WithTerminal(sErr),
+	)
+
+	go func() {
+		<-handlerEntered
+		m.RequestExit(sErr, errors.New("watchdog: seal lost"))
+		cancel()
+	}()
+
+	_ = m.Run(ctx)
+	if got := m.Current(); got != sErr {
+		t.Errorf("Current after cancellation+RequestExit: got %q, want %q", got, sErr)
+	}
+	if got := m.LastError(); got == nil || got.Error() != "watchdog: seal lost" {
+		t.Errorf("LastError: got %v, want %q", got, "watchdog: seal lost")
+	}
+}
+
+// TestRequestExitWithNilReasonPreservesHandlerError — when no reason
+// is supplied and the handler returned an error, that error is what
+// LastError carries.
+func TestRequestExitWithNilReasonPreservesHandlerError(t *testing.T) {
+	handlerErr := errors.New("handler failed")
+	m := New(sIdle,
+		WithHandler(sIdle, func(_ context.Context) (S, error) {
+			return "", handlerErr
+		}),
+		WithTerminal(sErr),
+	)
+	m.RequestExit(sErr, nil)
+	_ = m.Run(context.Background())
+	if got := m.Current(); got != sErr {
+		t.Errorf("Current: got %q, want %q", got, sErr)
+	}
+	if got := m.LastError(); got != handlerErr {
+		t.Errorf("LastError: got %v, want %v", got, handlerErr)
+	}
+}
+
+// TestRequestExitLastCallWins — multiple RequestExit before the loop
+// honors any of them: the last one wins.
+func TestRequestExitLastCallWins(t *testing.T) {
+	gate := make(chan struct{})
+	m := New(sIdle,
+		WithHandler(sIdle, func(c context.Context) (S, error) {
+			<-gate
+			return sDone, nil
+		}),
+		WithHandler(sErr, okHandler(sDone)),
+		WithHandler(sA, okHandler(sDone)),
+		WithTerminal(sDone),
+	)
+	m.RequestExit(sErr, errors.New("first"))
+	m.RequestExit(sA, errors.New("second"))
+	close(gate)
+	_ = m.Run(context.Background())
+	if got := m.Current(); got != sDone {
+		t.Errorf("Current: got %q, want %q", got, sDone)
+	}
+	if got := m.LastError(); got == nil || got.Error() != "second" {
+		t.Errorf("LastError (last-wins): got %v, want %q", got, "second")
+	}
+}
+
+// TestRequestExitClearedAfterUse — after a request has been honored,
+// the next handler return is not redirected.
+func TestRequestExitClearedAfterUse(t *testing.T) {
+	var count atomic.Int32
+	m := New(sIdle,
+		WithHandler(sIdle, func(_ context.Context) (S, error) {
+			count.Add(1)
+			return sA, nil
+		}),
+		WithHandler(sA, okHandler(sDone)),
+		WithHandler(sErr, okHandler(sDone)),
+		WithTerminal(sDone),
+	)
+	m.RequestExit(sErr, errors.New("once"))
+	_ = m.Run(context.Background())
+	// Path: sIdle → (requested) sErr → sDone. sA never entered.
+	if got := m.Current(); got != sDone {
+		t.Errorf("Current: got %q, want %q", got, sDone)
+	}
+	if count.Load() != 1 {
+		t.Errorf("sIdle handler ran %d times, want 1", count.Load())
+	}
+}
+
+// TestRequestExitInStep — Step honors the request the same way Run
+// does.
+func TestRequestExitInStep(t *testing.T) {
+	m := New(sIdle,
+		WithHandler(sIdle, okHandler(sA)),
+		WithHandler(sErr, okHandler(sDone)),
+		WithTerminal(sDone),
+	)
+	m.RequestExit(sErr, errors.New("step redirect"))
+	if err := m.Step(context.Background()); err != nil {
+		t.Fatalf("Step: %v", err)
+	}
+	if got := m.Current(); got != sErr {
+		t.Errorf("Current after Step: got %q, want %q", got, sErr)
+	}
+	if got := m.LastError(); got == nil || got.Error() != "step redirect" {
+		t.Errorf("LastError: got %v", got)
+	}
+}
+
+// TestResetClearsExitRequest — a stale request from a prior cycle
+// doesn't leak into the next Run.
+func TestResetClearsExitRequest(t *testing.T) {
+	m := New(sIdle,
+		WithHandler(sIdle, okHandler(sDone)),
+		WithHandler(sErr, okHandler(sDone)),
+		WithTerminal(sDone),
+	)
+	m.RequestExit(sErr, errors.New("stale"))
+	if err := m.Reset(); err != nil {
+		t.Fatalf("Reset: %v", err)
+	}
+	_ = m.Run(context.Background())
+	// Path should be sIdle → sDone, not sIdle → (stale request) sErr.
+	if got := m.Current(); got != sDone {
+		t.Errorf("Current after Reset+Run: got %q, want %q", got, sDone)
+	}
+}
