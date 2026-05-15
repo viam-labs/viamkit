@@ -4,11 +4,56 @@ import (
 	commonpb "go.viam.com/api/common/v1"
 	"github.com/golang/geo/r3"
 	"go.viam.com/rdk/spatialmath"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // DefaultObserverFrame is used when a primitive doesn't set its own
 // ObserverFrame. Matches the WorldStateStore convention.
 const DefaultObserverFrame = "world"
+
+// Color is RGB 0..255 + optional opacity 0..1. Carried on a primitive's
+// Color field; serialized into the Transform's `Metadata.color` +
+// `Metadata.opacity` struct, which is the convention the Viam 3D scene
+// renderer reads. Zero-value Color (all-zero RGB, zero opacity) is
+// treated as "unset" — the renderer's default applies (typically red).
+type Color struct {
+	R int     // 0..255
+	G int     // 0..255
+	B int     // 0..255
+	Opacity float64 // 0..1; 0 means "unspecified" and the renderer picks a default
+}
+
+// IsSet reports whether the Color has any non-zero component. A
+// zero-value Color is treated as "not configured" — the primitive's
+// ToTransform won't attach a Metadata block at all, so the renderer's
+// default color applies.
+func (c Color) IsSet() bool {
+	return c.R != 0 || c.G != 0 || c.B != 0 || c.Opacity != 0
+}
+
+// asMetadata renders the Color into the structpb.Struct shape the Viam
+// 3D scene renderer expects on Transform.Metadata. Returns nil when the
+// Color is unset, so primitives can leave Transform.Metadata at nil and
+// let the renderer pick its default.
+func (c Color) asMetadata() *structpb.Struct {
+	if !c.IsSet() {
+		return nil
+	}
+	fields := map[string]*structpb.Value{}
+	if c.R != 0 || c.G != 0 || c.B != 0 {
+		fields["color"] = structpb.NewStructValue(&structpb.Struct{
+			Fields: map[string]*structpb.Value{
+				"r": structpb.NewNumberValue(float64(c.R)),
+				"g": structpb.NewNumberValue(float64(c.G)),
+				"b": structpb.NewNumberValue(float64(c.B)),
+			},
+		})
+	}
+	if c.Opacity > 0 {
+		fields["opacity"] = structpb.NewNumberValue(c.Opacity)
+	}
+	return &structpb.Struct{Fields: fields}
+}
 
 // Box is a rectangular-prism Transform. Width × length × height
 // dimensions are in millimeters; Pose places the box center in the
@@ -33,6 +78,11 @@ type Box struct {
 
 	// Label is the geometry's display label. Defaults to UUID.
 	Label string
+
+	// Color carries optional RGB + opacity rendered into the
+	// Transform's Metadata.color / Metadata.opacity. Zero-value =
+	// renderer default.
+	Color Color
 }
 
 // ToTransform produces the *commonpb.Transform.
@@ -50,6 +100,7 @@ func (b Box) ToTransform() *commonpb.Transform {
 			},
 			Label: labelOr(b.Label, b.UUID),
 		},
+		Metadata: b.Color.asMetadata(),
 	}
 }
 
@@ -62,6 +113,7 @@ type Sphere struct {
 	Pose           spatialmath.Pose
 	RadiusMM       float64
 	Label          string
+	Color          Color
 }
 
 func (s Sphere) ToTransform() *commonpb.Transform {
@@ -78,6 +130,7 @@ func (s Sphere) ToTransform() *commonpb.Transform {
 			},
 			Label: labelOr(s.Label, s.UUID),
 		},
+		Metadata: s.Color.asMetadata(),
 	}
 }
 
@@ -92,6 +145,7 @@ type Capsule struct {
 	RadiusMM       float64
 	LengthMM       float64
 	Label          string
+	Color          Color
 }
 
 func (c Capsule) ToTransform() *commonpb.Transform {
@@ -108,6 +162,7 @@ func (c Capsule) ToTransform() *commonpb.Transform {
 			},
 			Label: labelOr(c.Label, c.UUID),
 		},
+		Metadata: c.Color.asMetadata(),
 	}
 }
 

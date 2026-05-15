@@ -125,3 +125,35 @@ func TestBoxNilPoseDefaultsToZero(t *testing.T) {
 		t.Errorf("nil Pose should default to zero, got %+v", tf.PoseInObserverFrame.Pose)
 	}
 }
+
+func TestBoxColorMetadata(t *testing.T) {
+	tf := Box{
+		UUID:   "b",
+		DimsMM: r3.Vector{X: 10, Y: 10, Z: 10},
+		Color:  Color{R: 176, G: 136, B: 80, Opacity: 0.9},
+	}.ToTransform()
+	if tf.Metadata == nil {
+		t.Fatal("expected Metadata to be populated when Color is set")
+	}
+	colorField, ok := tf.Metadata.Fields["color"]
+	if !ok {
+		t.Fatal("expected Metadata.color")
+	}
+	cv := colorField.GetStructValue()
+	if cv == nil {
+		t.Fatal("expected Metadata.color to be a struct")
+	}
+	if math.Abs(cv.Fields["r"].GetNumberValue()-176) > eps {
+		t.Errorf("r: got %v, want 176", cv.Fields["r"].GetNumberValue())
+	}
+	if math.Abs(tf.Metadata.Fields["opacity"].GetNumberValue()-0.9) > eps {
+		t.Errorf("opacity: got %v, want 0.9", tf.Metadata.Fields["opacity"].GetNumberValue())
+	}
+}
+
+func TestBoxNoColorLeavesMetadataNil(t *testing.T) {
+	tf := Box{UUID: "b", DimsMM: r3.Vector{X: 10, Y: 10, Z: 10}}.ToTransform()
+	if tf.Metadata != nil {
+		t.Errorf("expected nil Metadata when Color is unset, got %+v", tf.Metadata)
+	}
+}

@@ -43,6 +43,7 @@ Version bumps so far:
 - **v0.6.1** — `fakes.Resource` deterministic verb dispatch for multi-key requests
 - **v0.7.0** — `viz` (WorldStateStore Transform builders) + `worldstate` (motion-planner WorldState composition)
 - **v0.8.0** — `verify` (motion-service plan-only wrapper + trajectory FK helper)
+- **v0.9.0** — `viz.Color` + Color fields on Box/Sphere/Capsule. ToTransform() serializes into `Transform.Metadata.color` / `Metadata.opacity` (the Viam 3D scene renderer's color convention). Zero-value Color = unset, renderer default applies.
 
 ## Design conventions
 
