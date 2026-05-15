@@ -37,6 +37,16 @@
 //	)
 //	wd.Start(parentCtx)
 //	defer wd.Stop()
+//
+// Callback contract:
+//   - OnFail fires exactly once per Watchdog run, when Check returns
+//     Lost. The watchdog then exits.
+//   - OnTransient fires every time Check returns Transient. Polling
+//     continues; OnFail does not fire.
+//   - Healthy returns invoke neither callback.
+//
+// Pair with statemachine.Machine.RequestExit if the watchdog needs
+// to redirect a running FSM into an error state from its OnFail.
 package watchdog
 
 import (
