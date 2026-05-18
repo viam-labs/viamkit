@@ -147,3 +147,91 @@ func TestWireRoundtripNextBox(t *testing.T) {
 		t.Errorf("round-trip drift:\norig: %+v\nback: %+v", orig, back)
 	}
 }
+
+// New types added in v0.12.0 — pin their wire-key sets so a future
+// rename catches in CI instead of shipping as a silent-zero.
+
+func TestSetBoxTransformRequest_WithColor(t *testing.T) {
+	req := SetBoxTransformRequest{
+		Seq:    3,
+		Parent: "world",
+		Pose:   geom.Pose6D{X: 1, OZ: 1},
+		Color:  &Color{R: 176, G: 136, B: 80, Opacity: 0.9},
+	}
+	m, err := ToMap(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cm, ok := m["color"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("color: expected nested map, got %T", m["color"])
+	}
+	if cm["r"].(float64) != 176 {
+		t.Errorf("color.r: got %v, want 176", cm["r"])
+	}
+	if cm["opacity"].(float64) != 0.9 {
+		t.Errorf("color.opacity: got %v, want 0.9", cm["opacity"])
+	}
+}
+
+func TestSetBoxTransformRequest_NoColor(t *testing.T) {
+	// Without an explicit Color, the key should be omitted entirely
+	// (caller wants the service default).
+	req := SetBoxTransformRequest{Seq: 1, Parent: "world", Pose: geom.Pose6D{OZ: 1}}
+	m, err := ToMap(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, has := m["color"]; has {
+		t.Errorf("color key should be omitted when nil; got %v", m)
+	}
+}
+
+func TestGetPalletHomePoseRequestKeys(t *testing.T) {
+	got := keysOf(t, GetPalletHomePoseRequest{SafetyHeightMM: 300})
+	wantKeys(t, got, []string{"safety_height_mm"}, "GetPalletHomePoseRequest")
+}
+
+func TestGetCornerPosesResponseKeys(t *testing.T) {
+	got := keysOf(t, GetCornerPosesResponse{Corners: []geom.Pose6D{{X: 1}}})
+	wantKeys(t, got, []string{"corners"}, "GetCornerPosesResponse")
+}
+
+func TestGetStatusResponseKeys(t *testing.T) {
+	got := keysOf(t, GetStatusResponse{OK: true, Model: "m", Name: "n", DimsValid: true, ColorValid: true, Visible: true})
+	want := []string{"ok", "model", "name", "dims_valid", "color_valid", "visible", "show_axes"}
+	wantKeys(t, got, want, "GetStatusResponse")
+}
+
+func TestGetConveyorDirectionResponseKeys(t *testing.T) {
+	got := keysOf(t, GetConveyorDirectionResponse{X: 0, Y: 1, Z: 0})
+	wantKeys(t, got, []string{"x", "y", "z"}, "GetConveyorDirectionResponse")
+}
+
+func TestSetPickStationAttributesRequestOmitsUnset(t *testing.T) {
+	// Empty request marshals to {} — every field is omitempty so a
+	// caller with zero edits sends nothing.
+	req := SetPickStationAttributesRequest{}
+	m, err := ToMap(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(m) != 0 {
+		t.Errorf("empty request should marshal to {}, got %v", m)
+	}
+}
+
+func TestSetPickStationAttributesRequestNestedVec(t *testing.T) {
+	yneg := -1.0
+	req := SetPickStationAttributesRequest{
+		ConveyorDirection: &Vec3{X: 0, Y: yneg, Z: 0},
+	}
+	m, _ := ToMap(req)
+	cd, ok := m["conveyor_direction"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("conveyor_direction: expected nested map, got %T", m["conveyor_direction"])
+	}
+	if cd["y"].(float64) != yneg {
+		t.Errorf("conveyor_direction.y: got %v, want -1", cd["y"])
+	}
+}

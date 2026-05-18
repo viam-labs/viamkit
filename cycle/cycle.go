@@ -180,6 +180,12 @@ func (t *Tracker) Stats() Stats {
 // Stats is a snapshot of the rolling statistics. Durations are
 // always in nanoseconds (use the time.Duration arithmetic operators
 // or `.Seconds()`, `.Milliseconds()` etc. for display).
+//
+// Last / Min / Max / Mean / P50 / P95 are MEANINGFUL ONLY when
+// `Count > 0` (equivalently, `HasSamples() == true`). On a fresh
+// Tracker — or after Reset — they're zero-valued. Webapp and status-
+// verb consumers should gate display on `HasSamples()` to avoid
+// rendering "0.00 s" for every stat field on cold start.
 type Stats struct {
 	// Count is the total number of cycles completed since the
 	// Tracker was constructed — not the rolling-window size.
@@ -187,8 +193,9 @@ type Stats struct {
 	// WindowSize is the number of cycles in the rolling window
 	// right now (≤ the configured window).
 	WindowSize int
-	// Last is the most recent cycle's duration.
+	// Last is the most recent cycle's duration. Zero when Count == 0.
 	Last time.Duration
+	// Min / Max / Mean / P50 / P95 are zero when Count == 0.
 	Min  time.Duration
 	Max  time.Duration
 	Mean time.Duration
@@ -196,6 +203,15 @@ type Stats struct {
 	// adjacent samples; meaningful for windows of ≥ ~10 cycles.
 	P50 time.Duration
 	P95 time.Duration
+}
+
+// HasSamples reports whether at least one cycle has completed —
+// equivalently, whether Last / Min / Max / Mean / P50 / P95 are
+// meaningful. Use this to gate display in webapp status panels so
+// cold-start renders something like "—" or "no cycles yet" instead
+// of "0.00 s" everywhere.
+func (s Stats) HasSamples() bool {
+	return s.Count > 0
 }
 
 // percentile returns the duration at the p-th percentile of the

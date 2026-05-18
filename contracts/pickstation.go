@@ -57,3 +57,49 @@ type SetDimensionsRequest struct {
 // returning verb on pallet + pick-station (`get_pose`,
 // `get_pickup_pose`, `get_pick_home_pose`, `get_vacuum_pose`).
 type PoseResponse = geom.Pose6D
+
+// Verbs added in workcell-components 0.4.0:
+
+const (
+	VerbPickStationGetConveyorDirection = "get_conveyor_direction"
+	VerbPickStationGetStatus            = "get_status"
+	VerbPickStationGetSummary           = "get_summary"
+)
+
+// GetConveyorDirectionResponse is the {x, y, z} unit vector along
+// which the conveyor flows. Defaults to {0, 1, 0} when the
+// pick-station's `conveyor_direction` Config attr is unset.
+type GetConveyorDirectionResponse struct {
+	X float64 `json:"x"`
+	Y float64 `json:"y"`
+	Z float64 `json:"z"`
+}
+
+// SetPickStationAttributesRequest is the body of `set_attributes` on
+// the pick-station. Every field is optional; omitted fields are
+// no-ops. The response carries a persistence hint (see
+// SetPersistResponse in pallet.go).
+type SetPickStationAttributesRequest struct {
+	Label             string                       `json:"label,omitempty"`
+	WidthMM           float64                      `json:"width_mm,omitempty"`
+	LengthMM          float64                      `json:"length_mm,omitempty"`
+	ThicknessMM       float64                      `json:"thickness_mm,omitempty"`
+	Color             *Color                       `json:"color,omitempty"`
+	BoxThetaDeg       *float64                     `json:"box_theta_deg,omitempty"`
+	PickHomeZOffsetMM *float64                     `json:"pick_home_z_offset_mm,omitempty"`
+	BoxOriginOffsetMM *Vec3                        `json:"box_origin_offset_mm,omitempty"`
+	ConveyorDirection *Vec3                        `json:"conveyor_direction,omitempty"`
+	ShowAxes          *bool                        `json:"show_axes,omitempty"`
+	Visible           *bool                        `json:"visible,omitempty"`
+	Opacity           *float64                     `json:"opacity,omitempty"`
+}
+
+// Vec3 is a plain {x, y, z} payload used by pick-station's box-
+// origin offset and conveyor direction. Mirrors the JSON shape; the
+// viamkit/geom.Vec3D type is the typed Go equivalent if callers want
+// to convert.
+type Vec3 struct {
+	X float64 `json:"x"`
+	Y float64 `json:"y"`
+	Z float64 `json:"z"`
+}

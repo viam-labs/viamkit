@@ -112,14 +112,17 @@ type GetPalletHomeResponse struct {
 }
 
 // SetBoxTransformRequest is the body of `set_box_transform`. As of
-// pack-sequencer 0.2.0, the `Pose` field is silently discarded —
-// the verb is currently parent-binding-only. pack-sequencer 0.3.0
-// is expected to honor the pose; until then, treat Pose as
-// best-effort.
+// pack-sequencer 0.3.0, Pose is honored (under either the nested
+// `pose:` key or flat at the args level — this struct produces the
+// nested form, which is the recommended shape). Color is an optional
+// per-call override that beats the service's `box_color` Config attr
+// for this one transform; a zero-value Color means "use the service
+// default."
 type SetBoxTransformRequest struct {
 	Seq    int         `json:"seq"`
 	Parent string      `json:"parent,omitempty"`
 	Pose   geom.Pose6D `json:"pose,omitempty"`
+	Color  *Color      `json:"color,omitempty"`
 }
 
 // SetBoxTransformResponse is the ack returned after set_box_transform.
