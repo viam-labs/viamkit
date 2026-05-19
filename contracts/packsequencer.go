@@ -158,3 +158,54 @@ type GetProgressResponse struct {
 	Total        int   `json:"total"`
 	Complete     bool  `json:"complete"`
 }
+
+// PackOrderPlacement is one entry in the GetPackOrderResponse's
+// `placements` list — a single per-box pose + dims + metadata. Note
+// the field-name pattern: dimensions use BARE `width_mm` /
+// `length_mm` / `height_mm` (NOT the `box_*_mm` prefix that
+// get_box_dims uses); poses appear in both pallet-local and
+// world frames. Dryrun-4 caught a hand-written struct using the
+// wrong field-name set and silent-zeroing every field as a result.
+type PackOrderPlacement struct {
+	Seq                    int            `json:"seq"`
+	Col                    int            `json:"col"`
+	Row                    int            `json:"row"`
+	Layer                  int            `json:"layer"`
+	XMM                    float64        `json:"x_mm"`
+	YMM                    float64        `json:"y_mm"`
+	ZMM                    float64        `json:"z_mm"`
+	Label                  string         `json:"label,omitempty"`
+	LengthMM               float64        `json:"length_mm"`
+	WidthMM                float64        `json:"width_mm"`
+	HeightMM               float64        `json:"height_mm"`
+	PoseInPallet           geom.Pose6D    `json:"pose_in_pallet"`
+	PoseInWorld            geom.Pose6D    `json:"pose_in_world"`
+	ApproachOffsetInPallet ApproachOffset `json:"approach_offset_in_pallet"`
+}
+
+// GetPackOrderResponse is the full pack-sequencer pack-order dump.
+// Used by `verify_pallet` to iterate every placement without
+// stepping the cursor, by webapp 3D-preview to render the planned
+// pallet, and by any consumer that needs the geometry of every
+// placement up-front.
+//
+// The dryrun-4 silent-zero risk this struct prevents: a hand-rolled
+// `type packOrderResponse struct { PackOrder [...] }` reads zero
+// placements because the actual wire key is `placements`, and per-
+// placement field-name drift between this and `get_box_dims` is
+// easy to miss without the typed struct.
+type GetPackOrderResponse struct {
+	Placements        []PackOrderPlacement `json:"placements"`
+	Cols              int                  `json:"cols"`
+	Rows              int                  `json:"rows"`
+	Layers            int                  `json:"layers"`
+	Capacity          int                  `json:"capacity"`
+	Quantity          int                  `json:"quantity"`
+	Overflow          int                  `json:"overflow"`
+	Mode              string               `json:"mode"`
+	Warnings          []string             `json:"warnings,omitempty"`
+	PalletThicknessMM float64              `json:"pallet_thickness_mm"`
+	PalletWidthMM     float64              `json:"pallet_width_mm"`
+	PalletLengthMM    float64              `json:"pallet_length_mm"`
+	PalletPose        geom.Pose6D          `json:"pallet_pose"`
+}
