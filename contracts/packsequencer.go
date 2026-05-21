@@ -15,18 +15,18 @@ import "github.com/viam-labs/viamkit/geom"
 // Pack-sequencer DoCommand verb names. Use as map keys when
 // constructing a request: `{contracts.VerbNextBox: true, ...}`.
 const (
-	VerbNextBox            = "next_box"
-	VerbReportPlacement    = "report_placement"
-	VerbGetBoxDims         = "get_box_dims"
-	VerbGetPalletHome      = "get_pallet_home"
-	VerbGetPackOrder       = "get_pack_order"
-	VerbGetProgress        = "get_progress"
-	VerbResetCursor        = "reset_cursor"
-	VerbSkipBox            = "skip_box"
-	VerbSetBoxTransform    = "set_box_transform"
-	VerbClearBoxTransform  = "clear_box_transform"
-	VerbGetAttributes      = "get_attributes"
-	VerbSetAttributes      = "set_attributes"
+	VerbNextBox           = "next_box"
+	VerbReportPlacement   = "report_placement"
+	VerbGetBoxDims        = "get_box_dims"
+	VerbGetPalletHome     = "get_pallet_home"
+	VerbGetPackOrder      = "get_pack_order"
+	VerbGetProgress       = "get_progress"
+	VerbResetCursor       = "reset_cursor"
+	VerbSkipBox           = "skip_box"
+	VerbSetBoxTransform   = "set_box_transform"
+	VerbClearBoxTransform = "clear_box_transform"
+	VerbGetAttributes     = "get_attributes"
+	VerbSetAttributes     = "set_attributes"
 )
 
 // NextBoxResponse is the response shape of `next_box`. Note the
@@ -37,21 +37,21 @@ const (
 // `_in_world`); this struct's tags match the wire and prevent that
 // regression.
 type NextBoxResponse struct {
-	Seq                    int             `json:"seq"`
-	Col                    int             `json:"col"`
-	Row                    int             `json:"row"`
-	Layer                  int             `json:"layer"`
-	PoseInPallet           geom.Pose6D     `json:"pose_in_pallet"`
-	ApproachOffsetInPallet ApproachOffset  `json:"approach_offset_in_pallet"`
-	PlaceEndInWorld        geom.Pose6D     `json:"place_end_in_world"`
-	PlaceStartInWorld      geom.Pose6D     `json:"place_start_in_world"`
-	BoxDimensionsMM        BoxDimensions   `json:"box_dimensions_mm"`
-	IsComplete             bool            `json:"is_complete"`
-	Total                  int             `json:"total"`
-	Placed                 int             `json:"placed"`
-	Failed                 int             `json:"failed"`
-	Skipped                int             `json:"skipped"`
-	Remaining              int             `json:"remaining"`
+	Seq                    int            `json:"seq"`
+	Col                    int            `json:"col"`
+	Row                    int            `json:"row"`
+	Layer                  int            `json:"layer"`
+	PoseInPallet           geom.Pose6D    `json:"pose_in_pallet"`
+	ApproachOffsetInPallet ApproachOffset `json:"approach_offset_in_pallet"`
+	PlaceEndInWorld        geom.Pose6D    `json:"place_end_in_world"`
+	PlaceStartInWorld      geom.Pose6D    `json:"place_start_in_world"`
+	BoxDimensionsMM        BoxDimensions  `json:"box_dimensions_mm"`
+	IsComplete             bool           `json:"is_complete"`
+	Total                  int            `json:"total"`
+	Placed                 int            `json:"placed"`
+	Failed                 int            `json:"failed"`
+	Skipped                int            `json:"skipped"`
+	Remaining              int            `json:"remaining"`
 }
 
 // ApproachOffset is the per-box angled-approach delta in pallet-local

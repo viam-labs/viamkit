@@ -6,16 +6,19 @@ A pure-Go toolkit for building Viam modules. Not itself a Viam module — no bin
 
 Each package owns one concern. They compose; they don't depend on each other except where noted.
 
-## Packages (current as of v0.5.0)
+## Packages
+
+All twelve packages below are shipped. See "Versioning + release flow" for
+which release each landed in.
 
 | Pkg | One-liner |
 |---|---|
 | `geom` | `Pose6D`, `Vec3D` + converters to `spatialmath.Pose` / `r3.Vector`. The JSON-serializable shapes the SDK doesn't ship. |
-| `contracts` | Generic codec helpers for the Viam DoCommand wire format: `ToMap` / `FromMap[T]` / `MustToMap`. No module-specific types — each consumer defines its own request/response structs and dispatches through these helpers. |
+| `contracts` | Two layers: generic DoCommand wire-format codec helpers (`ToMap` / `FromMap[T]` / `MustToMap`), plus typed wire structs + verb constants for the workcell ecosystem (`packsequencer.go`, `pickstation.go`, `pallet.go`, `colors.go`) so producers and consumers share one definition. |
 | `lifecycle` | Two-context pattern: cancellable loop ctx (`Stop`, `EnsureLive`, `Ctx`) + timeout-bounded cleanup ctx (`CleanupCtx`, `CtxOrCleanup`). Drop-in for the `cancelCtx + cancelFunc + cleanupCtx()` quartet most modules end up writing. |
 | `statemachine` | Generic FSM over a typed state set. `Run` / `Step` / `Goto` / `Reset`. `WithHandlers(map)` declarative dispatch. `WithErrorState` + `WithOnEntry` / `WithOnExit` / `OnTransition` lifecycle hooks. `TimeInState` / `TimeInCycle` / `TimeSinceState` / `IsDone` accessors. |
 | `cycle` | Per-cycle duration tracker + rolling stats (min/max/mean/p50/p95). Pairs with `statemachine`'s OnEntry/OnExit hooks. |
-| `kinematics` | Pure motion-planning helpers: `YawFromOrientation`, `LastTrajectoryJoints` / `TrajectoryToJointPath` (typed + gRPC trajectory shapes), `InterpolateJointPath`, `FriendlyPlannerError`. |
+| `kinematics` | Pure motion-planning helpers: `YawFromOrientation`, joint-space pre-rotation (`PreRotatedJoints`, `AlignStartJointsToPlaceYaw`), `LastTrajectoryJoints` / `TrajectoryToJointPath` (typed + gRPC trajectory shapes), `InterpolateJointPath`, `FriendlyPlannerError`. |
 | `fakes` | In-process programmable fakes for Go unit tests: `Gripper`, `Arm`, `Vision`, `Switch`, `Resource` (DoCommand-only). Per-method `Fn` overrides, atomic call counters, scriptable responses. |
 | `watchdog` | Background-poller-with-cancel pattern. `Check` returns Healthy / Lost / Transient; OnFail fires on Lost; OnTransient logs and continues; ShouldExit for clean termination. |
 | `viz` | `commonpb.Transform` builders for WorldStateStore producers (the live 3D scene viewer). `Box`, `Sphere`, `Capsule`, `Point` structs each with `ToTransform()` (each carries an optional `Color`). Pose ↔ proto converters. `Removal(uuid)` for stream removals. `Store` + `NewStoreService` for the in-memory WSS-service backing. `TrajectoryTransforms` / `TrajectoryUUIDs` for plan-preview chains. |
@@ -65,22 +68,32 @@ These are followed across packages and should stay consistent as new packages ge
 
 ```
 viamkit/
-├── go.mod
+├── go.mod / go.sum
+├── Makefile          (build / test / lint / fmt / hooks targets)
 ├── README.md
 ├── CLAUDE.md         (this file)
+├── LICENSE           (Apache License 2.0)
+├── .golangci.yaml    (lint config — golangci-lint v2)
+├── .github/workflows/ci.yml   (build + test + lint on push / PR)
+├── .githooks/pre-commit       (fast gofmt + vet + build hook)
+├── docs/
+│   └── ecosystem.md  (module-level architecture diagram)
 ├── geom/
-│   ├── poses.go
+│   ├── poses.go      (Pose6D, Vec3D + SDK converters)
 │   └── poses_test.go
 ├── contracts/
-│   ├── codec.go      (ToMap, FromMap[T], MustToMap)
-│   ├── packsequencer.go  (verb constants + typed structs)
-│   ├── pickstation.go    (verb constants)
-│   └── codec_test.go
+│   ├── codec.go      (ToMap, FromMap[T], MustToMap — generic helpers)
+│   ├── colors.go     (shared Color type)
+│   ├── packsequencer.go (verb constants + typed structs)
+│   ├── pickstation.go   (verb constants + typed structs)
+│   ├── pallet.go        (verb constants + typed structs)
+│   ├── codec_test.go
+│   └── wire_shape_test.go
 ├── lifecycle/
 │   ├── lifecycle.go
 │   └── lifecycle_test.go
 ├── statemachine/
-│   ├── machine.go    (Machine[S], Run/Step/Goto/Reset, time accessors)
+│   ├── machine.go    (Machine[S], Run/Step/Goto/Reset, RequestExit, time accessors)
 │   ├── options.go    (WithHandler(s), WithTerminal, WithErrorState, WithOnEntry/Exit, OnTransition)
 │   ├── machine_test.go
 │   └── example_test.go  (godoc examples)
@@ -89,9 +102,11 @@ viamkit/
 │   └── cycle_test.go
 ├── kinematics/
 │   ├── doc.go
-│   ├── orientation.go   (YawFromOrientation)
-│   ├── trajectory.go    (LastTrajectoryJoints, TrajectoryToJointPath, InterpolateJointPath)
+│   ├── orientation.go    (YawFromOrientation)
+│   ├── joints.go         (PreRotatedJoints, AlignStartJointsToPlaceYaw, SignConvention)
+│   ├── trajectory.go     (LastTrajectoryJoints, TrajectoryToJointPath, InterpolateJointPath)
 │   ├── planner_errors.go (FriendlyPlannerError)
+│   ├── joints_test.go
 │   └── kinematics_test.go
 ├── fakes/
 │   ├── doc.go
@@ -101,9 +116,30 @@ viamkit/
 │   ├── switch.go
 │   ├── resource.go      (DoCommand-only stub for pack-sequencer / pick-station-style consumers)
 │   └── fakes_test.go
-└── watchdog/
-    ├── watchdog.go
-    └── watchdog_test.go
+├── watchdog/
+│   ├── watchdog.go
+│   └── watchdog_test.go
+├── viz/
+│   ├── doc.go
+│   ├── transform.go     (Box / Sphere / Capsule / Point + ToTransform)
+│   ├── pose.go          (PoseToProto / PoseFromProto)
+│   ├── attach.go        (AttachToGripper)
+│   ├── plan.go          (TrajectoryTransforms / TrajectoryUUIDs)
+│   ├── store.go         (Store + NewStoreService)
+│   ├── *_test.go
+│   └── axes/
+│       ├── axes.go      (X/Y/Z coordinate-triad publisher)
+│       └── axes_test.go
+├── worldstate/
+│   ├── doc.go
+│   ├── worldstate.go    (NewBoxObstacle, NewSphereObstacle, HeldObject, GripperHeldBox, WorldObstacles, Combined)
+│   ├── worldstate_test.go
+│   └── held_test.go
+└── verify/
+    ├── doc.go
+    ├── plan.go          (MarshalPlanRequest, ParsePlanResponse, Plan)
+    ├── trajectory.go    (TrajectoryToEEPoses)
+    └── verify_test.go
 ```
 
 ## What's NOT in viamkit (and won't be)
@@ -111,14 +147,46 @@ viamkit/
 - **Module-specific business logic.** Pack-order math, palletizing waypoint composition, pickup-station geometry — these belong in the consumer module. viamkit is a toolkit, not a robotics framework.
 - **DoCommand verb impls.** The typed structs in `contracts` describe the wire format; the handler logic lives in the module that owns the verb.
 - **Anything that requires a viam-server connection.** `fakes` and `contracts.ToMap` work in pure Go; runtime resource resolution is the consumer's concern.
-- **A `Motion` service fake.** Deferred until a real consumer test needs it — the interface is huge and most state-transition unit tests can avoid it.
+
+(A `Motion` service fake is wanted but deferred — see the Roadmap below.)
 
 ## Roadmap (planned but not yet shipped)
 
+`verify`, `worldstate`, and `viz` were on this list and have since shipped
+(v0.7.0–v0.8.0). What remains:
+
 | Pkg | Notes |
 |---|---|
-| `verify` | "Plan but don't execute" wrapper around motion service `DoPlan`, with feasibility reporting and downsampled trajectory return. Generalizes the palletizer's `doVerifyPallet`/`doVerifyPickStation`. |
-| `worldstate` | Held-object-attached-to-gripper composition + placed-obstacle list builder. Generalizes the palletizer's `combinedWorldState`. |
-| `viz` | `commonpb.Transform` builders for `WorldStateStore` producers — the live 3D scene side. |
-| `docommand` | Generic verb-table dispatcher. Tiny (~30 LOC). Lower payoff than expected — most consumers' dispatch tables are already small. |
-| `fakes.Motion` | When a real consumer needs it. |
+| `docommand` | Generic verb-table dispatcher. Tiny (~30 LOC). Lower payoff than expected — most consumers' dispatch tables are already small, so this stays deferred. |
+| `fakes.Motion` | A `Motion` service fake. Deferred until a real consumer test needs it — the interface is large and most state-transition unit tests can avoid it. |
+
+A minimal end-to-end reference module (`examples/`) plus a walkthrough
+tutorial are also planned, to give class onboarding something smaller than
+the palletizer to learn module structure from.
+
+### Generalize the palletization-specific API
+
+viamkit is meant to be domain-agnostic. A May 2026 pass cleaned up
+palletizer-flavored wording in comments, but a few methods still bake in
+palletizing assumptions and need a proper refactor. The palletizer module
+(`Palletizing-Module`) consumes these, so any rename or signature change is a
+breaking change for it — this must be done **in lockstep with the palletizer**,
+not unilaterally.
+
+- `worldstate.GripperHeldBox` / `worldstate.DefaultHeldBoxZPadMM` — box-only;
+  bakes a `+H/2` offset and a fixed Z-pad. Generalize to any held geometry, or
+  move to the consumer.
+- `viz.AttachToGripper` — box-only, hard-codes `Label: "held-box"`. Same call.
+- `kinematics.AlignStartJointsToPlaceYaw` — general logic, but the name embeds
+  the palletizing "place" verb. Rename (e.g. `AlignWristToYaw`).
+- `contracts/packsequencer.go`, `pickstation.go`, `pallet.go`, `colors.go` —
+  the entire workcell wire-contract layer. Decide whether it stays as a
+  documented second layer or splits into a separate
+  `viam-labs/workcell-contracts` module so viamkit proper is domain-free.
+
+## Development
+
+- `make check` — build + lint + test, the same suite CI runs (`.github/workflows/ci.yml`).
+- `make fmt` — apply gofmt + goimports.
+- `make hooks` — install the `.githooks/pre-commit` hook (run once after cloning).
+- Lint config is `.golangci.yaml` (golangci-lint v2; revive rule set mirrors `viamrobotics/rdk`).

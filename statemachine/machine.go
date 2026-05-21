@@ -80,10 +80,10 @@ type Machine[S comparable] struct {
 	hasErrState  bool
 	onTransition func(from, to S)
 
-	mu       sync.Mutex
-	current  S
-	running  bool
-	lastErr  error
+	mu      sync.Mutex
+	current S
+	running bool
+	lastErr error
 	// runDone is signalled (closed) when an in-flight Run exits, so
 	// Stop callers can wait for the loop to settle if they want.
 	runDone chan struct{}
@@ -112,7 +112,7 @@ type Machine[S comparable] struct {
 	// the value so the zero S value isn't ambiguous (a caller might
 	// legitimately request the zero state). exitReason is reported
 	// on LastError() when the request is honored — typically a
-	// watchdog supplies "seal lost mid-transit" or similar so the
+	// watchdog supplies a reason like "object dropped" so the
 	// operator UI can show *why* the loop was redirected.
 	exitRequest    S
 	exitReason     error
@@ -242,7 +242,7 @@ func (m *Machine[S]) Run(ctx context.Context) error {
 		// land in StateError instead of unwinding to "no state
 		// change." Honoring the request here means the machine ends
 		// in the requested state before ctx.Err() exits the loop.
-		if exit, reason, requested := m.takeExitRequest(); requested {
+		if exit, requested, reason := m.takeExitRequest(); requested {
 			if reason != nil {
 				m.mu.Lock()
 				m.lastErr = reason
@@ -252,8 +252,9 @@ func (m *Machine[S]) Run(ctx context.Context) error {
 				m.lastErr = err
 				m.mu.Unlock()
 			}
+			// The handler's returned state is discarded; any handler
+			// error was recorded on LastError above rather than routed.
 			next = exit
-			err = nil // routed to the requested state instead
 		} else if err != nil {
 			if errors.Is(err, context.Canceled) || ctx.Err() != nil {
 				return nil
@@ -396,7 +397,7 @@ func (m *Machine[S]) Step(ctx context.Context) error {
 	// RequestExit semantics in Step mirror Run: a pending request
 	// overrides the handler's decision and lands the machine at the
 	// requested state. Reason (if any) goes on LastError.
-	if exit, reason, requested := m.takeExitRequest(); requested {
+	if exit, requested, reason := m.takeExitRequest(); requested {
 		if reason != nil {
 			m.mu.Lock()
 			m.lastErr = reason
@@ -406,8 +407,9 @@ func (m *Machine[S]) Step(ctx context.Context) error {
 			m.lastErr = err
 			m.mu.Unlock()
 		}
+		// As in Run: the handler's returned state is discarded and any
+		// handler error was recorded on LastError above, not routed.
 		next = exit
-		err = nil
 	} else if err != nil {
 		m.recordErrorAndRoute(err)
 		return err
@@ -436,7 +438,7 @@ func (m *Machine[S]) Step(ctx context.Context) error {
 //
 // `reason` is an optional error that gets recorded on LastError so an
 // operator UI can show *why* the redirect happened — typical use:
-// a watchdog passes `errors.New("seal lost mid-transit")`. If `reason`
+// a watchdog passes `errors.New("object dropped")`. If `reason`
 // is nil and the handler returned a non-nil error, that handler error
 // is recorded instead; otherwise LastError is left as-is.
 //
@@ -445,7 +447,7 @@ func (m *Machine[S]) Step(ctx context.Context) error {
 // doesn't interrupt an in-flight handler. The combined idiom in a
 // watchdog handler is:
 //
-//	m.RequestExit(StateError, errors.New("seal lost"))
+//	m.RequestExit(StateError, errors.New("object dropped"))
 //	lifecycle.Stop()
 //
 // If called multiple times before being honored, the most recent call
@@ -459,13 +461,15 @@ func (m *Machine[S]) RequestExit(state S, reason error) {
 }
 
 // takeExitRequest atomically retrieves and clears any pending
-// RequestExit. The boolean is true if one was pending.
-func (m *Machine[S]) takeExitRequest() (S, error, bool) {
+// RequestExit. It returns (requested state, pending bool, reason);
+// pending is true if a request was waiting, and reason is the
+// optional error supplied to RequestExit.
+func (m *Machine[S]) takeExitRequest() (S, bool, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if !m.hasExitRequest {
 		var zero S
-		return zero, nil, false
+		return zero, false, nil
 	}
 	state := m.exitRequest
 	reason := m.exitReason
@@ -473,7 +477,7 @@ func (m *Machine[S]) takeExitRequest() (S, error, bool) {
 	m.exitReason = nil
 	var zero S
 	m.exitRequest = zero
-	return state, reason, true
+	return state, true, reason
 }
 
 // Goto forces the current state without running the destination's

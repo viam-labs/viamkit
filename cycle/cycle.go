@@ -1,15 +1,16 @@
 // Package cycle tracks per-cycle durations and rolling statistics for
-// modules that do repeated units of work — picking and placing a box,
-// running an inspection pass, executing one motion segment. It owns
-// no state machine integration and works equally well standalone:
+// modules that do repeated units of work — running an inspection
+// pass, executing one motion segment, completing one pick-place
+// cycle. It owns no state machine integration and works equally well
+// standalone:
 //
-//	t := cycle.New(cycle.WithWindow(50))
+//	tracker := cycle.New(cycle.WithWindow(50)) // roll stats over the last 50 cycles
 //	for {
-//	    t.Start()
+//	    tracker.Start()
 //	    doWork()
-//	    t.End()
-//	    if s := t.Stats(); s.Count%10 == 0 {
-//	        log.Infow("cycle stats", "last", s.Last, "p95", s.P95)
+//	    tracker.End()
+//	    if stats := tracker.Stats(); stats.Count%10 == 0 { // log every 10th cycle
+//	        log.Infow("cycle stats", "last", stats.Last, "p95", stats.P95)
 //	    }
 //	}
 //

@@ -57,8 +57,8 @@ type PlanResult struct {
 //
 //   - startJoints: pre-supplied arm configuration. Lets you chain
 //     plans (use one plan's final joints as the next plan's start),
-//     or verify reachability "from pallet_home" without first moving
-//     the arm there. Pass nil to use current joints.
+//     or verify reachability from a hypothetical pose without first
+//     moving the arm there. Pass nil to use current joints.
 //
 //   - timeoutSecs: planner timeout per call. The SDK default is
 //     300s, which makes a wedged plan grind for 5 minutes; passing

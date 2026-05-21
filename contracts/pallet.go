@@ -9,6 +9,8 @@ import "github.com/viam-labs/viamkit/geom"
 // corner poses, etc.) compute them locally from get_pose +
 // get_dimensions.
 
+// Pallet DoCommand verb names. Use as map keys when constructing a
+// request: `{contracts.VerbPalletGetPose: true}`.
 const (
 	VerbPalletGetPose       = "get_pose"
 	VerbPalletGetDimensions = "get_dimensions"

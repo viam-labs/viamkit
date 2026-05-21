@@ -25,15 +25,24 @@
 //     armplanning.PlanState.Serialize(), so consumers don't need to
 //     import armplanning (which pulls in native nlopt).
 //
-// Typical usage:
+// Typical usage. The four trailing arguments are easy to mix up, so
+// they read most clearly one per line:
 //
-//	result, err := verify.Plan(ctx, motionSvc, motion.MoveReq{
-//	    ComponentName: gripperName,
-//	    Destination:   referenceframe.NewPoseInFrame("world", goalPose),
-//	    WorldState:    ws,
-//	    Constraints:   &motionplan.Constraints{...},
-//	}, "builtin", armName, startJoints, 15.0)
-//	if err != nil { ... }
+//	result, err := verify.Plan(ctx, motionSvc,
+//	    motion.MoveReq{
+//	        ComponentName: gripperName,
+//	        Destination:   referenceframe.NewPoseInFrame("world", goalPose),
+//	        WorldState:    ws,
+//	        Constraints:   &motionplan.Constraints{ /* ... */ },
+//	    },
+//	    "builtin",   // name of the motion service resource
+//	    armName,     // arm being planned for; startJoints describes its joints
+//	    startJoints, // joint configuration the plan starts from
+//	    15.0,        // planner timeout, in seconds
+//	)
+//	if err != nil {
+//	    return err
+//	}
 //	if !result.Feasible {
 //	    log.Warnw("can't reach goal", "reason", result.Message)
 //	}

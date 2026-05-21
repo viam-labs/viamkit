@@ -15,19 +15,72 @@
 // idempotently; cleanup contexts are short, independent, and always
 // bounded.
 //
-// Minimal usage:
+// How it maps onto a Viam module:
 //
-//	l := lifecycle.New()
-//	defer l.Close()
-//	go run(l.Ctx())            // long-running loop reads l.Ctx()
-//	...
-//	l.Stop()                   // cancel the loop
-//	ctx, cancel := l.CleanupCtx()
-//	defer cancel()
-//	peer.DoCommand(ctx, ...)   // tells peer we stopped, bounded by timeout
-//	...
-//	l.EnsureLive()             // refresh loop ctx for the next run
-//	go run(l.Ctx())            // ...same shape, fresh context
+// A module owns one Lifecycle for the life of its process. Three of
+// its methods touch it — construction, Reconfigure, and Close — and
+// each one wants a different context. The sketch below drives a
+// viamkit/statemachine loop, but the shape is the same for any
+// long-running goroutine (a scan loop, a poller).
+//
+//	type cellModule struct {
+//	    resource.Named
+//	    life *lifecycle.Lifecycle
+//	    sm   *statemachine.Machine[state]
+//	    peer resource.Resource // a sibling module reached via DoCommand
+//	    arm  arm.Arm
+//	}
+//
+//	// Construction: create the Lifecycle, start the loop on its ctx.
+//	func newCellModule(deps resource.Dependencies) (*cellModule, error) {
+//	    m := &cellModule{life: lifecycle.New()}
+//	    m.sm = statemachine.New(stateIdle /*, WithHandlers(...), ... */)
+//	    go m.sm.Run(m.life.Ctx()) // loop is cancellable via m.life.Stop()
+//	    return m, nil
+//	}
+//
+//	// Reconfigure: stop the running loop, tell a peer the old cycle
+//	// ended, then start a fresh loop.
+//	func (m *cellModule) Reconfigure(ctx context.Context, _ resource.Dependencies, _ resource.Config) error {
+//	    m.life.Stop() // cancels m.life.Ctx(); the loop goroutine unwinds
+//
+//	    // CleanupCtx is independent of the (now-cancelled) loop ctx, so
+//	    // this DoCommand still lands — and it's 5s-bounded, so a wedged
+//	    // peer can't hang Reconfigure.
+//	    cctx, cancel := m.life.CleanupCtx()
+//	    defer cancel()
+//	    m.peer.DoCommand(cctx, map[string]any{"reset_cursor": true})
+//
+//	    go m.sm.Run(m.life.EnsureLive()) // EnsureLive mints a fresh ctx
+//	    return nil
+//	}
+//
+//	// Close: terminate permanently, then do last-gasp teardown.
+//	func (m *cellModule) Close(ctx context.Context) error {
+//	    m.life.Close() // loop ctx cancelled for good; EnsureLive won't revive it
+//
+//	    // CleanupCtx keeps working after Close, so the arm still parks.
+//	    cctx, cancel := m.life.CleanupCtx()
+//	    defer cancel()
+//	    return m.arm.MoveToJointPositions(cctx, parkPositions, nil)
+//	}
+//
+// Why each context choice matters:
+//
+//   - The loop reads Ctx() so a Stop cancels every in-flight RPC under
+//     it. Hand the loop a fresh context instead and Stop becomes a
+//     no-op.
+//   - Teardown work (the peer DoCommand, the arm park) uses CleanupCtx,
+//     never Ctx() — Ctx() is cancelled by the very Stop/Close that
+//     triggered the teardown, so a cleanup RPC on it would fail
+//     instantly with context.Canceled.
+//   - The next run uses EnsureLive(), not Ctx(): after a Stop the loop
+//     ctx is cancelled, and EnsureLive mints a fresh one (and is a
+//     no-op when the ctx is already live).
+//
+// For an operation that should be cancellable while the loop runs but
+// must still complete during teardown — e.g. an operator-triggered
+// DoCommand handler — CtxOrCleanup() folds that choice into one call.
 package lifecycle
 
 import (

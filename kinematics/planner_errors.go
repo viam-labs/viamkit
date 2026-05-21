@@ -4,18 +4,18 @@ import "strings"
 
 // FriendlyPlannerError translates a motion-service planner error
 // string into a human-readable explanation, with the supplied label
-// substituted into the message where appropriate (e.g. "place_start",
-// "pickup_home", or whatever the target is named).
+// substituted into the message where appropriate (e.g. "goal",
+// "waypoint-2", or whatever the target is named).
 //
 // Returns "unknown failure" if raw is empty; falls through to a
 // best-effort trimmed version of raw if no known pattern matches.
 //
 // The mapped messages are written for motion-planning workflows that
-// hold a wrist-orientation constraint while planning (the common
-// pick-and-place pattern). If your module plans without an
-// orientation lock, the "wrist held steady" framing in some messages
-// may read oddly — consumers can wrap and substitute their own text
-// where it matters, or call this only for orientation-locked plans.
+// hold a wrist-orientation constraint while planning. If your module
+// plans without an orientation lock, the "wrist held steady" framing
+// in some messages may read oddly — consumers can wrap and substitute
+// their own text where it matters, or call this only for
+// orientation-locked plans.
 //
 // Patterns recognized:
 //   - "cbirrt timeout" / "deadline exceeded" → planner timed out

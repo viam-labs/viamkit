@@ -1,8 +1,8 @@
 package viz
 
 import (
-	commonpb "go.viam.com/api/common/v1"
 	"github.com/golang/geo/r3"
+	commonpb "go.viam.com/api/common/v1"
 	"go.viam.com/rdk/spatialmath"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -17,9 +17,9 @@ const DefaultObserverFrame = "world"
 // renderer reads. Zero-value Color (all-zero RGB, zero opacity) is
 // treated as "unset" — the renderer's default applies (typically red).
 type Color struct {
-	R int     // 0..255
-	G int     // 0..255
-	B int     // 0..255
+	R       int     // 0..255
+	G       int     // 0..255
+	B       int     // 0..255
 	Opacity float64 // 0..1; 0 means "unspecified" and the renderer picks a default
 }
 
@@ -116,6 +116,7 @@ type Sphere struct {
 	Color          Color
 }
 
+// ToTransform produces the *commonpb.Transform.
 func (s Sphere) ToTransform() *commonpb.Transform {
 	return &commonpb.Transform{
 		Uuid:           []byte(s.UUID),
@@ -148,6 +149,7 @@ type Capsule struct {
 	Color          Color
 }
 
+// ToTransform produces the *commonpb.Transform.
 func (c Capsule) ToTransform() *commonpb.Transform {
 	return &commonpb.Transform{
 		Uuid:           []byte(c.UUID),

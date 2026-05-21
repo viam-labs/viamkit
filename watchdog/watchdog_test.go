@@ -94,12 +94,7 @@ func TestShouldExitTerminatesCleanly(t *testing.T) {
 			checks.Add(1)
 			return Healthy, nil
 		}),
-		WithShouldExit(func() bool {
-			if exitTriggered.Load() {
-				return true
-			}
-			return false
-		}),
+		WithShouldExit(exitTriggered.Load),
 		WithOnFail(func(error) { failed.Add(1) }),
 	)
 	wd.Start(context.Background())

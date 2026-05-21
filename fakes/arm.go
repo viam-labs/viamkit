@@ -96,10 +96,10 @@ func (a *Arm) LastMoveToJointPositions() []referenceframe.Input {
 }
 
 // EndPositionCalls / JointPositionsCalls / etc. return invocation counts.
-func (a *Arm) EndPositionCalls() int           { return int(a.endPositionCalls.Load()) }
-func (a *Arm) JointPositionsCalls() int        { return int(a.jointPositionsCalls.Load()) }
-func (a *Arm) MoveToPositionCalls() int        { return int(a.moveToPositionCalls.Load()) }
-func (a *Arm) MoveToJointPositionsCalls() int  { return int(a.moveToJointPositionsCalls.Load()) }
+func (a *Arm) EndPositionCalls() int          { return int(a.endPositionCalls.Load()) }
+func (a *Arm) JointPositionsCalls() int       { return int(a.jointPositionsCalls.Load()) }
+func (a *Arm) MoveToPositionCalls() int       { return int(a.moveToPositionCalls.Load()) }
+func (a *Arm) MoveToJointPositionsCalls() int { return int(a.moveToJointPositionsCalls.Load()) }
 func (a *Arm) MoveThroughJointPositionsCalls() int {
 	return int(a.moveThroughJointPositionsCalls.Load())
 }
@@ -121,7 +121,7 @@ func (a *Arm) Reset() {
 
 // ---- resource.Resource ----
 
-func (a *Arm) Name() resource.Name { return a.name }
+func (a *Arm) Name() resource.Name           { return a.name }
 func (a *Arm) Close(_ context.Context) error { return nil }
 func (a *Arm) Reconfigure(_ context.Context, _ resource.Dependencies, _ resource.Config) error {
 	return nil

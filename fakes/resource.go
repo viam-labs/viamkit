@@ -11,9 +11,9 @@ import (
 
 // Resource is a minimal fake of resource.Resource for components and
 // services that the system-under-test only interacts with via
-// DoCommand — e.g. pack-sequencer and pick-station in the palletizer
-// ecosystem. The fake captures each call so tests can assert "the
-// palletizer sent report_placement with success=false."
+// DoCommand — e.g. a sibling module reached purely over DoCommand.
+// The fake captures each call so tests can assert "the module sent
+// `reset` with `force=true`."
 //
 // Two ways to script behavior:
 //

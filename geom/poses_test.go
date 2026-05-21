@@ -59,11 +59,11 @@ func TestPose6DToMap(t *testing.T) {
 
 func TestVec3DNormalized(t *testing.T) {
 	cases := []struct {
-		name    string
-		v       Vec3D
-		wantX   float64
-		wantY   float64
-		wantZ   float64
+		name  string
+		v     Vec3D
+		wantX float64
+		wantY float64
+		wantZ float64
 	}{
 		{"unit X", Vec3D{X: 1}, 1, 0, 0},
 		{"scale-3 X", Vec3D{X: 3}, 1, 0, 0},

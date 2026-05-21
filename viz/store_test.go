@@ -228,4 +228,3 @@ func TestStoreServiceDoCommandUnknownErrors(t *testing.T) {
 		t.Error("expected error for unknown verb")
 	}
 }
-

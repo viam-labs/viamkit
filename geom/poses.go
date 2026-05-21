@@ -36,7 +36,7 @@ func (p Pose6D) ToPose() spatialmath.Pose {
 }
 
 // ToMap renders a Pose6D as the canonical JSON map shape used in
-// DoCommand responses across the workcell modules.
+// DoCommand request and response payloads.
 func (p Pose6D) ToMap() map[string]interface{} {
 	return map[string]interface{}{
 		"x":     p.X,

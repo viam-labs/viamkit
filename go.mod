@@ -6,6 +6,7 @@ require (
 	github.com/golang/geo v0.0.0-20230421003525-6adc56603217
 	go.viam.com/api v0.1.496
 	go.viam.com/rdk v0.105.0
+	google.golang.org/protobuf v1.36.10
 )
 
 require (
@@ -162,7 +163,6 @@ require (
 	google.golang.org/genproto/googleapis/api v0.0.0-20250825161204-c5933d9347a5 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250825161204-c5933d9347a5 // indirect
 	google.golang.org/grpc v1.75.1 // indirect
-	google.golang.org/protobuf v1.36.10 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	nhooyr.io/websocket v1.8.7 // indirect

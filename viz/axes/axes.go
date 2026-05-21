@@ -10,6 +10,7 @@
 //
 // Typical use inside a WorldStateStore producer:
 //
+//	// "arm-base": UUID prefix for the three Transforms; 200: axis length in mm.
 //	for _, tr := range axes.Axes("arm-base", armBasePose, 200) {
 //	    store.Set(tr)
 //	}
