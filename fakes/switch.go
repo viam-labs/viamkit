@@ -77,7 +77,7 @@ func (s *Switch) Reset() {
 
 // ---- resource.Resource ----
 
-func (s *Switch) Name() resource.Name { return s.name }
+func (s *Switch) Name() resource.Name           { return s.name }
 func (s *Switch) Close(_ context.Context) error { return nil }
 func (s *Switch) Reconfigure(_ context.Context, _ resource.Dependencies, _ resource.Config) error {
 	return nil

@@ -2,8 +2,8 @@
 // monitoring a condition at regular intervals and triggering a
 // callback when it fails. Typical use cases:
 //
-//   - A gripper module watching IsHoldingSomething during transit, so
-//     a dropped box mid-cycle aborts the motion instead of being
+//   - A gripper module watching IsHoldingSomething while moving, so
+//     a dropped object mid-cycle aborts the motion instead of being
 //     discovered only at the destination.
 //   - A sensor module watching a temperature / current / pressure
 //     reading for an unsafe value during an active operation.
@@ -26,13 +26,15 @@
 //	            return watchdog.Transient, err
 //	        }
 //	        if !status.IsHoldingSomething {
-//	            return watchdog.Lost, errors.New("seal lost")
+//	            return watchdog.Lost, errors.New("object dropped")
 //	        }
 //	        return watchdog.Healthy, nil
 //	    }),
-//	    watchdog.WithShouldExit(func() bool { return !holding || stopped }),
+//	    watchdog.WithShouldExit(func() bool {
+//	        return cycleDone // stop watching once the place completes
+//	    }),
 //	    watchdog.WithOnFail(func(err error) {
-//	        // signal abort: cancel lifecycle, set state, ...
+//	        // signal abort: cancel the lifecycle, route the FSM to ERROR, ...
 //	    }),
 //	)
 //	wd.Start(parentCtx)
@@ -59,14 +61,14 @@ import (
 type Result int
 
 const (
-	// Healthy: the watched condition is good. Keep polling.
+	// Healthy means the watched condition is good. Keep polling.
 	Healthy Result = iota
-	// Lost: a failure was detected. The watchdog calls OnFail with
-	// the returned error and exits.
+	// Lost means a failure was detected. The watchdog calls OnFail
+	// with the returned error and exits.
 	Lost
-	// Transient: a temporary error occurred (e.g. RPC timeout). The
-	// watchdog calls OnTransient (if set) and continues polling. Use
-	// for cases where one bad poll shouldn't trigger an abort.
+	// Transient means a temporary error occurred (e.g. RPC timeout).
+	// The watchdog calls OnTransient (if set) and continues polling.
+	// Use for cases where one bad poll shouldn't trigger an abort.
 	Transient
 )
 
@@ -120,7 +122,7 @@ func WithCheck(fn CheckFn) Option {
 // WithShouldExit sets an optional predicate consulted before each
 // check tick. If it returns true, the watchdog exits cleanly without
 // firing OnFail. Use for "this watcher is no longer needed" cases
-// (e.g. the gripper has released the box, the operator paused).
+// (e.g. the gripper has released its load, the operator paused).
 func WithShouldExit(fn func() bool) Option {
 	return func(w *Watchdog) { w.shouldExit = fn }
 }
@@ -140,7 +142,7 @@ func WithOnTransient(fn func(err error)) Option {
 }
 
 // DefaultInterval is the poll interval used when WithInterval isn't
-// passed. 5 Hz is fast enough to catch most transit-window failures
+// passed. 5 Hz is fast enough to catch most failures promptly
 // without flooding the watched RPC.
 const DefaultInterval = 200 * time.Millisecond
 

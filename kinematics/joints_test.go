@@ -22,10 +22,10 @@ func TestPreRotatedJoints_OnlyJ0AndJ5Move(t *testing.T) {
 	curr := newInputs(0.1, 0.2, 0.3, 0.4, 0.5, 0.6)
 	got := PreRotatedJoints(
 		curr,
-		r3.Vector{X: 500, Y: 0},        // current EE at +X
-		0,                              // current yaw 0
-		r3.Vector{X: 0, Y: 500},        // target EE at +Y → 90° world rotation
-		math.Pi/2,                      // target yaw +90°
+		r3.Vector{X: 500, Y: 0}, // current EE at +X
+		0,                       // current yaw 0
+		r3.Vector{X: 0, Y: 500}, // target EE at +Y → 90° world rotation
+		math.Pi/2,               // target yaw +90°
 		SignConventionURStyle,
 	)
 	if len(got) != 6 {
@@ -83,7 +83,7 @@ func TestPreRotatedJoints_YawConsistencyRule(t *testing.T) {
 		r3.Vector{X: 500, Y: 0},
 		0,
 		r3.Vector{X: 500, Y: 0}, // same XY → no J0 swing
-		math.Pi / 4,
+		math.Pi/4,
 		SignConventionURStyle,
 	)
 	// deltaJ0 = 0; deltaJ5 = sign·deltaYaw = -π/4.
@@ -178,7 +178,7 @@ func TestWrapToShortestPath(t *testing.T) {
 	cases := []struct{ in, want float64 }{
 		{0, 0},
 		{math.Pi / 2, math.Pi / 2},
-		{math.Pi + 0.1, math.Pi + 0.1 - 2*math.Pi},  // wraps to negative
+		{math.Pi + 0.1, math.Pi + 0.1 - 2*math.Pi},   // wraps to negative
 		{-math.Pi - 0.1, -math.Pi - 0.1 + 2*math.Pi}, // wraps to positive
 		{3 * math.Pi, math.Pi},                       // 3π → π
 	}

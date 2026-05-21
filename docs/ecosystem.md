@@ -11,11 +11,13 @@ module's tarball at build time.
 
 ```
                    github.com/viam-labs/viamkit (library)
-              ┌──────┬─────────┬──────────┬─────────────┐
-              │ geom │contracts│ lifecycle│ statemachine│
-              ├──────┼─────────┼──────────┼─────────────┤
-              │cycle │kinematics│  fakes  │  watchdog   │
-              └──────┴─────────┴──────────┴─────────────┘
+              ┌──────┬──────────┬──────────┬─────────────┐
+              │ geom │ contracts│ lifecycle│ statemachine│
+              ├──────┼──────────┼──────────┼─────────────┤
+              │cycle │kinematics│   fakes  │   watchdog  │
+              ├──────┼──────────┼──────────┼─────────────┤
+              │  viz │worldstate│  verify  │             │
+              └──────┴──────────┴──────────┴─────────────┘
                               │  go module
               ┌───────────────┼───────────────┐
               ▼               ▼               ▼
@@ -39,6 +41,9 @@ graph TB
         kinematics[kinematics]
         fakes[fakes]
         watchdog[watchdog]
+        viz[viz]
+        worldstate[worldstate]
+        verify[verify]
     end
 
     palletizer[shrews-testing:palletizing-module]

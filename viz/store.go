@@ -12,8 +12,8 @@ import (
 )
 
 // DefaultChangeBufferSize is the default capacity of the
-// TransformChange channel. 128 covers the worst-case "operator hits
-// reset on a 100-box pallet" burst without blocking emit().
+// TransformChange channel. 128 covers the worst-case "operator
+// resets a scene of ~100 objects" burst without blocking emit().
 const DefaultChangeBufferSize = 128
 
 // StoreOption configures a Store at construction.
@@ -21,8 +21,8 @@ type StoreOption func(*Store)
 
 // WithChangeBufferSize overrides the change-channel capacity.
 // Defaults to DefaultChangeBufferSize. Set higher for producers that
-// emit large bursts (e.g. clearing 1000 placed boxes); set lower if
-// memory matters more than burst tolerance.
+// emit large bursts (e.g. clearing a scene of 1000 objects); set
+// lower if memory matters more than burst tolerance.
 func WithChangeBufferSize(n int) StoreOption {
 	return func(s *Store) { s.bufferSize = n }
 }

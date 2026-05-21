@@ -5,21 +5,35 @@
 // contract by name instead of probing map keys, and lets the compiler
 // catch typos before they reach a running module.
 //
-// This package is intentionally generic — it has no module-specific
-// types or verb constants. Each consuming module defines its own
-// request / response structs and dispatches them through ToMap /
-// FromMap[T].
+// The package has two layers:
 //
-// Typical use:
+//   - The generic codec helpers (ToMap, FromMap[T], MustToMap) in this
+//     file. They are module-agnostic — any consumer can define its own
+//     request / response structs and dispatch them through these.
+//   - Typed wire-format structs and verb constants for the Viam
+//     workcell ecosystem (pack-sequencer, pick-station, pallet), in
+//     packsequencer.go / pickstation.go / pallet.go / colors.go. These
+//     let a producer and its consumers share a single definition, so a
+//     renamed JSON field becomes a compile error rather than a silent
+//     zero value.
 //
-//	// Producer side: build a typed response, marshal to wire shape.
-//	resp, err := contracts.ToMap(MyResponse{X: 1, Y: 2})
-//	return resp, err
+// Typical use of the generic helpers:
 //
-//	// Consumer side: receive a wire map, parse to typed struct.
-//	respMap, err := svc.DoCommand(ctx, map[string]any{"my_verb": true})
-//	if err != nil { return err }
-//	got, err := contracts.FromMap[MyResponse](respMap)
+//	// A wire type — its JSON tags become the field names on the wire.
+//	type StatusResponse struct {
+//	    Phase   string `json:"phase"`
+//	    Healthy bool   `json:"healthy"`
+//	}
+//
+//	// Producer side: typed struct → wire map.
+//	return contracts.ToMap(StatusResponse{Phase: "running", Healthy: true})
+//
+//	// Consumer side: wire map → typed struct.
+//	respMap, err := svc.DoCommand(ctx, map[string]any{"get_status": true})
+//	if err != nil {
+//	    return err
+//	}
+//	resp, err := contracts.FromMap[StatusResponse](respMap)
 package contracts
 
 import "encoding/json"

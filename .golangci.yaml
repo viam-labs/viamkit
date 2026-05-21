@@ -1,0 +1,73 @@
+# golangci-lint configuration for viamkit.
+# Format: golangci-lint v2 (https://golangci-lint.run/).
+#
+# viamkit is a small library, so the linter set stays close to the
+# v2 defaults (errcheck, govet, ineffassign, staticcheck, unused) plus
+# a handful of high-signal additions. The revive rule set mirrors the
+# curated list used in viamrobotics/rdk. Run it with `make lint`.
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  # "standard" = errcheck, govet, ineffassign, staticcheck, unused.
+  default: standard
+  enable:
+    - gocritic # opinionated correctness + style checks
+    - misspell # common English misspellings in comments and strings
+    - revive # golint successor: exported-symbol docs, naming, etc.
+    - unconvert # redundant type conversions
+  settings:
+    revive:
+      # Configuring rules explicitly disables revive's defaults, so the
+      # full curated set is listed. Mirrors viamrobotics/rdk/etc/.golangci.yaml.
+      rules:
+        - name: blank-imports
+        - name: context-as-argument
+          arguments:
+            - allowTypesBefore: "testing.TB,*testing.T,*testing.B,*testing.F"
+        - name: context-keys-type
+        - name: dot-imports
+        - name: error-naming
+        - name: error-return
+        - name: error-strings
+        - name: errorf
+        - name: exported
+        - name: increment-decrement
+        - name: indent-error-flow
+        - name: package-comments
+        - name: range
+        - name: receiver-naming
+        - name: redefines-builtin-id
+        - name: superfluous-else
+        - name: time-naming
+        - name: unexported-return
+        - name: unreachable-code
+        - name: var-declaration
+        - name: var-naming
+  exclusions:
+    rules:
+      # Test files routinely ignore errors from helpers and spawn
+      # goroutines whose return value cannot be checked (`go m.Run()`).
+      - path: _test\.go
+        linters:
+          - errcheck
+      # The fakes package implements wide SDK interfaces; the
+      # interface-satisfying methods are boilerplate documented as a
+      # group in fakes/doc.go rather than per-method.
+      - path: fakes/
+        text: "exported (method|function)"
+        linters:
+          - revive
+
+formatters:
+  # gofmt + goimports are run by `make fmt`; listing them here lets
+  # `golangci-lint run` also report unformatted files.
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/viam-labs/viamkit

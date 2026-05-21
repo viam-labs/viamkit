@@ -11,6 +11,8 @@ import "github.com/viam-labs/viamkit/geom"
 // at the top of the cmd map, which silently zeroed box_height_mm
 // when the consumer used the more idiomatic nested form.
 
+// Pick-station DoCommand verb names. Use as map keys when
+// constructing a request: `{contracts.VerbPickStationGetPose: true}`.
 const (
 	VerbPickStationGetPose         = "get_pose"
 	VerbPickStationGetDimensions   = "get_dimensions"
@@ -58,8 +60,7 @@ type SetDimensionsRequest struct {
 // `get_pickup_pose`, `get_pick_home_pose`, `get_vacuum_pose`).
 type PoseResponse = geom.Pose6D
 
-// Verbs added in workcell-components 0.4.0:
-
+// Pick-station DoCommand verb names added in workcell-components 0.4.0.
 const (
 	VerbPickStationGetConveyorDirection = "get_conveyor_direction"
 	VerbPickStationGetStatus            = "get_status"
@@ -80,18 +81,18 @@ type GetConveyorDirectionResponse struct {
 // no-ops. The response carries a persistence hint (see
 // SetPersistResponse in pallet.go).
 type SetPickStationAttributesRequest struct {
-	Label             string                       `json:"label,omitempty"`
-	WidthMM           float64                      `json:"width_mm,omitempty"`
-	LengthMM          float64                      `json:"length_mm,omitempty"`
-	ThicknessMM       float64                      `json:"thickness_mm,omitempty"`
-	Color             *Color                       `json:"color,omitempty"`
-	BoxThetaDeg       *float64                     `json:"box_theta_deg,omitempty"`
-	PickHomeZOffsetMM *float64                     `json:"pick_home_z_offset_mm,omitempty"`
-	BoxOriginOffsetMM *Vec3                        `json:"box_origin_offset_mm,omitempty"`
-	ConveyorDirection *Vec3                        `json:"conveyor_direction,omitempty"`
-	ShowAxes          *bool                        `json:"show_axes,omitempty"`
-	Visible           *bool                        `json:"visible,omitempty"`
-	Opacity           *float64                     `json:"opacity,omitempty"`
+	Label             string   `json:"label,omitempty"`
+	WidthMM           float64  `json:"width_mm,omitempty"`
+	LengthMM          float64  `json:"length_mm,omitempty"`
+	ThicknessMM       float64  `json:"thickness_mm,omitempty"`
+	Color             *Color   `json:"color,omitempty"`
+	BoxThetaDeg       *float64 `json:"box_theta_deg,omitempty"`
+	PickHomeZOffsetMM *float64 `json:"pick_home_z_offset_mm,omitempty"`
+	BoxOriginOffsetMM *Vec3    `json:"box_origin_offset_mm,omitempty"`
+	ConveyorDirection *Vec3    `json:"conveyor_direction,omitempty"`
+	ShowAxes          *bool    `json:"show_axes,omitempty"`
+	Visible           *bool    `json:"visible,omitempty"`
+	Opacity           *float64 `json:"opacity,omitempty"`
 }
 
 // Vec3 is a plain {x, y, z} payload used by pick-station's box-

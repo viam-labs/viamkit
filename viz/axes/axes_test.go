@@ -58,16 +58,16 @@ func TestAxesColors(t *testing.T) {
 func TestAxesCapsuleLengthAndRadius(t *testing.T) {
 	trs := Axes("a", spatialmath.NewZeroPose(), 100)
 	for i, tr := range trs {
-		cap := tr.PhysicalObject.GetCapsule()
-		if cap == nil {
+		capsule := tr.PhysicalObject.GetCapsule()
+		if capsule == nil {
 			t.Fatalf("axis %d: not a capsule", i)
 		}
-		if math.Abs(cap.LengthMm-100) > eps {
-			t.Errorf("axis %d length: got %v, want 100", i, cap.LengthMm)
+		if math.Abs(capsule.LengthMm-100) > eps {
+			t.Errorf("axis %d length: got %v, want 100", i, capsule.LengthMm)
 		}
 		// Default radius is 3% of length = 3 mm.
-		if math.Abs(cap.RadiusMm-3) > eps {
-			t.Errorf("axis %d radius default: got %v, want ~3", i, cap.RadiusMm)
+		if math.Abs(capsule.RadiusMm-3) > eps {
+			t.Errorf("axis %d radius default: got %v, want ~3", i, capsule.RadiusMm)
 		}
 	}
 }
@@ -96,9 +96,9 @@ func TestAxesOptionsOverride(t *testing.T) {
 	if trs[0].PoseInObserverFrame.ReferenceFrame != "arm-base" {
 		t.Errorf("ObserverFrame: got %q, want %q", trs[0].PoseInObserverFrame.ReferenceFrame, "arm-base")
 	}
-	cap := trs[0].PhysicalObject.GetCapsule()
-	if math.Abs(cap.RadiusMm-10) > eps {
-		t.Errorf("RadiusMM override: got %v, want 10", cap.RadiusMm)
+	capsule := trs[0].PhysicalObject.GetCapsule()
+	if math.Abs(capsule.RadiusMm-10) > eps {
+		t.Errorf("RadiusMM override: got %v, want 10", capsule.RadiusMm)
 	}
 	// X color should be the override (yellow), not the default red.
 	cv := trs[0].Metadata.Fields["color"].GetStructValue()

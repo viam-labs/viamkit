@@ -33,8 +33,8 @@ func NewSphereObstacle(pose spatialmath.Pose, radiusMM float64, label string) (s
 //     name, the wrist, etc.). The planner composes its kinematics
 //     so the object moves correctly.
 //   - offset: the geometry's pose relative to the parent frame's
-//     origin. For a vacuum-grasped box centered on the gripper tip,
-//     this is typically (0, 0, box_height/2).
+//     origin. For an object held centered on a gripper tip, this is
+//     typically (0, 0, objectHeight/2).
 //   - linkName: a unique name for the link (appears in collision
 //     reports). Has no functional meaning beyond identification.
 //   - geometry: the object's shape, with its OWN pose set to zero
@@ -78,17 +78,16 @@ func WorldObstacles(geoms ...spatialmath.Geometry) []*referenceframe.GeometriesI
 
 // DefaultHeldBoxZPadMM is the safety pad applied to each end of a
 // held box's Z dimension to avoid clipping the gripper geometry at
-// grasp and the pallet wood at place_end. The held-box collision
+// grasp and the support surface at release. The held-box collision
 // body shrinks INSIDE the real box's volume by this much on each
-// face. 2.5 mm is the value the production palletizer uses.
+// face. 2.5 mm is a conservative default.
 const DefaultHeldBoxZPadMM = 2.5
 
 // GripperHeldBox returns a *referenceframe.LinkInFrame for a box
 // attached to a gripper frame — the held-box collision body the
-// motion planner needs while a box is in transit between grasp and
+// motion planner needs while a box is carried between grasp and
 // release. Bakes the offset and orientation so consumers don't
-// re-derive it (and re-derive it wrong, which dryruns of the
-// palletizer arc have caught repeatedly).
+// re-derive it (and re-derive it wrong, which is easy to do).
 //
 // Convention: the gripper's frame +Z points away from the wrist
 // (toward the held box when the arm is wrist-down). The box's
@@ -96,7 +95,7 @@ const DefaultHeldBoxZPadMM = 2.5
 // pad on each Z face, the centroid offset is +H/2 still but the
 // Z dimension shrinks by 2*pad. The pad lets the box geometry stay
 // disjoint from the gripper's own collision body at grasp and from
-// the pallet wood at place_end.
+// the support surface at release.
 //
 // Parameters:
 //
@@ -117,8 +116,7 @@ func GripperHeldBox(
 	pad := DefaultHeldBoxZPadMM
 	if boxDimsMM.Z <= 2*pad {
 		// Don't shrink below zero — caller's box is shorter than the
-		// pad budget. Skip the pad in that case (rare for real
-		// palletizing boxes).
+		// pad budget. Skip the pad in that case (rare in practice).
 		pad = 0
 	}
 	dims := r3.Vector{X: boxDimsMM.X, Y: boxDimsMM.Y, Z: boxDimsMM.Z - 2*pad}

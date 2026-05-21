@@ -18,12 +18,12 @@ import (
 type SignConvention int
 
 const (
-	// SignConventionURStyle: world_yaw = -(J0 + J5) + C.
-	// Default for UR-class arms.
+	// SignConventionURStyle is the default for UR-class arms, where
+	// world_yaw = -(J0 + J5) + C.
 	SignConventionURStyle SignConvention = -1
 
-	// SignConventionFlipped: world_yaw = +(J0 + J5) + C.
-	// Use for arms where the joint-to-world rotation isn't inverted.
+	// SignConventionFlipped is for arms where the joint-to-world
+	// rotation isn't inverted, i.e. world_yaw = +(J0 + J5) + C.
 	SignConventionFlipped SignConvention = 1
 )
 
@@ -32,8 +32,8 @@ const (
 // toward a target world yaw. Joints 1..4 stay at currentJoints —
 // only the base and wrist move.
 //
-// Why: long task-space transits under an orientation-constraint
-// (e.g. pickup → pallet with the gripper locked downward) frequently
+// Why: long task-space moves under an orientation constraint
+// (e.g. a wide base swing with the gripper locked downward) frequently
 // blow the cartesian planner's budget because the planner has to
 // find a path that simultaneously satisfies the constraint AND the
 // joint kinematics. Pre-rotating J0+J5 in joint space first puts
@@ -114,12 +114,11 @@ func PreRotatedJoints(
 // J5 so the gripper's world yaw matches targetYawRad. Holds all
 // other joints constant — only the wrist moves.
 //
-// The common use case: a `pallet_home_switch` records the arm's
-// joints at a hand-jogged pallet-home pose. When the runtime cycle
-// goes to replay those joints, the gripper's yaw at the saved pose
-// might not match the place-orientation yaw the current cycle's box
-// needs. This helper composes a J5 correction so the replay lands
-// at the right yaw.
+// The common use case: a switch records the arm's joints at a
+// hand-jogged pose. When the runtime later replays those joints, the
+// gripper's yaw at the saved pose may not match the yaw the current
+// task needs. This helper composes a J5 correction so the replay
+// lands at the right yaw.
 //
 // Like PreRotatedJoints, this is pure — caller executes the result
 // via arm.MoveToJointPositions.

@@ -1,0 +1,21 @@
+#!/bin/sh
+# viamkit pre-commit hook.
+#
+# Enable once after cloning with:  make hooks
+# (that sets git's core.hooksPath to .githooks).
+#
+# This hook runs only the fast checks — formatting and a build. The
+# full lint + race-test suite runs in CI and via `make check`; keeping
+# the hook quick means it won't discourage frequent commits.
+
+set -e
+
+unformatted=$(gofmt -l .)
+if [ -n "$unformatted" ]; then
+	echo "pre-commit: the following files need formatting (run 'make fmt'):"
+	echo "$unformatted"
+	exit 1
+fi
+
+go vet ./...
+go build ./...

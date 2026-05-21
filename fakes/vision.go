@@ -7,10 +7,10 @@ import (
 
 	"go.viam.com/rdk/resource"
 	"go.viam.com/rdk/services/vision"
+	visionobj "go.viam.com/rdk/vision"
 	"go.viam.com/rdk/vision/classification"
 	"go.viam.com/rdk/vision/objectdetection"
 	viz "go.viam.com/rdk/vision/viscapture"
-	visionobj "go.viam.com/rdk/vision"
 )
 
 // Vision is an in-process fake of vision.Service for unit tests.
@@ -38,7 +38,7 @@ func NewVision(name string) *Vision {
 	return &Vision{name: vision.Named(name)}
 }
 
-// Helpful call counters for the two methods palletizer-style modules use most.
+// Helpful call counters for the two most commonly used Vision methods.
 func (v *Vision) ClassificationsFromCameraCalls() int {
 	return int(v.classificationsFromCameraCalls.Load())
 }
@@ -48,7 +48,7 @@ func (v *Vision) DetectionsFromCameraCalls() int {
 
 // ---- resource.Resource ----
 
-func (v *Vision) Name() resource.Name { return v.name }
+func (v *Vision) Name() resource.Name           { return v.name }
 func (v *Vision) Close(_ context.Context) error { return nil }
 func (v *Vision) Reconfigure(_ context.Context, _ resource.Dependencies, _ resource.Config) error {
 	return nil

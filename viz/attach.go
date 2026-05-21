@@ -7,9 +7,9 @@ import (
 	commonpb "go.viam.com/api/common/v1"
 )
 
-// AttachToGripper builds a Box transform representing a held box
-// attached to a gripper frame — for the 3D scene viewer's
-// visualization of "the box is in the gripper during transit."
+// AttachToGripper builds a Box transform representing a box held by a
+// gripper — for the 3D scene viewer's visualization of an object
+// being carried by a gripper.
 //
 // The transform's ObserverFrame is the gripper's name, and the Pose
 // is the box CENTER in gripper-local frame: (0, 0, +H/2). The
@@ -28,9 +28,8 @@ import (
 //     strategy: a stable UUID like "held-box" works for "one box in
 //     gripper at a time" patterns; a per-cycle UUID like
 //     "held-box-N" works when callers want to publish via
-//     ADDED/REMOVED (e.g. to dodge the renderer's metadata-update
-//     drop on color changes — see the renderer-update-path-matcher
-//     memory note).
+//     ADDED/REMOVED (e.g. to publish color changes, which some
+//     renderers honor only on ADDED/REMOVED, not on metadata updates).
 //   - gripperName: the gripper frame the box is parented to.
 //   - boxDimsMM: the box's width / length / height in mm.
 //   - color: optional rendering color. Zero Color = renderer default.
