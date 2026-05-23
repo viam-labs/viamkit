@@ -57,6 +57,11 @@ func (v *Vision) DoCommand(_ context.Context, _ map[string]interface{}) (map[str
 	return nil, resource.ErrDoUnimplemented
 }
 
+// Status satisfies resource.Resource; returns an empty map.
+func (v *Vision) Status(_ context.Context) (map[string]interface{}, error) {
+	return map[string]interface{}{}, nil
+}
+
 // ---- vision.Service ----
 
 func (v *Vision) DetectionsFromCamera(ctx context.Context, cameraName string, extra map[string]interface{}) ([]objectdetection.Detection, error) {

@@ -90,6 +90,11 @@ func (s *Switch) DoCommand(ctx context.Context, cmd map[string]interface{}) (map
 	return nil, resource.ErrDoUnimplemented
 }
 
+// Status satisfies resource.Resource; returns an empty map.
+func (s *Switch) Status(_ context.Context) (map[string]interface{}, error) {
+	return map[string]interface{}{}, nil
+}
+
 // ---- toggleswitch.Switch ----
 
 func (s *Switch) SetPosition(ctx context.Context, position uint32, extra map[string]interface{}) error {

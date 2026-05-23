@@ -159,6 +159,11 @@ func (r *Resource) DoCommand(ctx context.Context, cmd map[string]interface{}) (m
 	return nil, fmt.Errorf("fakes.Resource: no response registered for verb %q", verb)
 }
 
+// Status satisfies resource.Resource; returns an empty map.
+func (r *Resource) Status(_ context.Context) (map[string]interface{}, error) {
+	return map[string]interface{}{}, nil
+}
+
 // resolveVerbLocked picks the dispatch key for a request map. Prefers
 // a key that has a registered response or error (so multi-key
 // requests like `{"verb": true, "args": ...}` dispatch deterministically

@@ -63,6 +63,11 @@ func (g *Gripper) DoCommand(ctx context.Context, cmd map[string]interface{}) (ma
 	return nil, resource.ErrDoUnimplemented
 }
 
+// Status satisfies resource.Resource; returns an empty map.
+func (g *Gripper) Status(_ context.Context) (map[string]interface{}, error) {
+	return map[string]interface{}{}, nil
+}
+
 // ---- resource.Actuator ----
 
 // IsMoving returns false unless your test overrides it.

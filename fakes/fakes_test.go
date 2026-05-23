@@ -200,3 +200,30 @@ func TestResourceCallLog(t *testing.T) {
 		t.Errorf("b calls: got %d, want 1", got)
 	}
 }
+
+// TestStatusFakes asserts every fake's Status returns an empty map + nil
+// error, satisfying resource.Resource's Status method.
+func TestStatusFakes(t *testing.T) {
+	ctx := context.Background()
+	cases := []struct {
+		name string
+		fn   func() (map[string]interface{}, error)
+	}{
+		{"Arm", func() (map[string]interface{}, error) { return NewArm("a").Status(ctx) }},
+		{"Gripper", func() (map[string]interface{}, error) { return NewGripper("g").Status(ctx) }},
+		{"Resource", func() (map[string]interface{}, error) { return NewResource(generic.API, "r").Status(ctx) }},
+		{"Switch", func() (map[string]interface{}, error) { return NewSwitch("s").Status(ctx) }},
+		{"Vision", func() (map[string]interface{}, error) { return NewVision("v").Status(ctx) }},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got, err := c.fn()
+			if err != nil {
+				t.Errorf("Status err: %v", err)
+			}
+			if len(got) != 0 {
+				t.Errorf("Status map: got %v, want empty", got)
+			}
+		})
+	}
+}

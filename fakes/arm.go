@@ -130,6 +130,11 @@ func (a *Arm) DoCommand(_ context.Context, _ map[string]interface{}) (map[string
 	return nil, resource.ErrDoUnimplemented
 }
 
+// Status satisfies resource.Resource; returns an empty map.
+func (a *Arm) Status(_ context.Context) (map[string]interface{}, error) {
+	return map[string]interface{}{}, nil
+}
+
 // ---- resource.Shaped ----
 
 func (a *Arm) Geometries(_ context.Context, _ map[string]interface{}) ([]spatialmath.Geometry, error) {
