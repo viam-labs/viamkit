@@ -8,7 +8,7 @@ Each package owns one concern. They compose; they don't depend on each other exc
 
 ## Packages
 
-All twelve packages below are shipped. See "Versioning + release flow" for
+All thirteen packages below are shipped. See "Versioning + release flow" for
 which release each landed in.
 
 | Pkg | One-liner |
@@ -25,6 +25,7 @@ which release each landed in.
 | `viz/axes` | Pre-styled coordinate-axis triad publisher. One call returns three colored capsule Transforms at an origin pose. Useful for arm-base / per-component frame visualization. |
 | `worldstate` | `referenceframe.WorldState` composition for motion planning: `NewBoxObstacle` / `NewSphereObstacle` geometry constructors, `HeldObject` for gripper-frame attached objects, `WorldObstacles` for the "all in world frame" common case, `Combined` to merge static + dynamic. |
 | `verify` | "Plan but don't execute" wrapper around the motion service's `DoCommand("plan", ...)` path. `MarshalPlanRequest` + `ParsePlanResponse` + `Plan` convenience. `TrajectoryToEEPoses` for FK-based trajectory rendering. Encapsulates SDK quirks (the "plan" vs "DoPlan" key, partial-plan format, multi-shape trajectory keys). |
+| `operatorapp` | Serves a module's operator web app from any `fs.FS`. `Handler` / `ListenAndServe` host the static frontend and set the `part-id` / `host` / `api-key-id` / `api-key` cookies the browser SDK reads to authenticate to the cell (non-HttpOnly, so JS can read them). `Credentials` + `CredentialsFromEnv` (reads the `VIAM_ROBOT_PART_ID` / `VIAM_ROBOT_FQDN` / `VIAM_API_KEY_ID` / `VIAM_API_KEY` env vars) with `WithCredentials` to override. Replaces the per-module hand-copied webserver + the `viam module local-app-testing` proxy with one runnable Go entrypoint. Serves the frontend; doesn't build it. |
 
 ## Versioning + release flow
 
@@ -52,6 +53,7 @@ Version bumps so far:
 - **v0.11.0** — `contracts/packsequencer.go`, `contracts/pickstation.go`, `contracts/pallet.go` typed wire-format structs for the workcell-ecosystem registry modules. Producers (workcell-components, pack-sequencer) and consumers (a palletizer module) import these so JSON tags can't drift — a typo on either end becomes a compile error rather than a silent zero. Reverses the v0.6.0 "no module-specific types" direction in light of the 2026-05-15 dryrun's silent-zero failures (`place_start` vs `place_start_in_world`, `width_mm` vs `box_width_mm`, etc.). Plus a `watchdog` package-doc callback-contract summary so the OnFail-fires-on-Lost contract is discoverable from the package overview, not just the option godocs.
 - **v0.12.0** — `contracts` catches up with workcell-components 0.4.0 and pack-sequencer 0.3.0: `Color` field on `SetBoxTransformRequest`, shared `contracts.Color` type (with `GetColorResponse` / `SetColorRequest` aliased to it), typed structs for the new 0.4.0 verbs (`GetPalletHomePoseRequest`, `GetCornerPosesResponse`, `GetStatusResponse`, `GetSummaryResponse`, `GetConveyorDirectionResponse`, `SetPalletAttributesRequest`, `SetPickStationAttributesRequest`), and `SetPersistResponse` for the `{persisted, hint}` annotation. Plus `cycle.Stats.HasSamples()` helper + godoc warning that Last/Min/Max/Mean/P50/P95 are meaningful only when `Count > 0`.
 - **v0.13.0** — four helpers from the 2026-05-18 dryrun's findings. `kinematics.PreRotatedJoints(currentJoints, currentEEXY, currentEEYawRad, targetXY, targetYawRad, sign)` derives J0+J5 in joint space so the cartesian planner starts in a feasible region (closes the recurring "long transit deadline-exceeds under orientation-lock" finding). `kinematics.AlignStartJointsToPlaceYaw(savedJoints, savedYawRad, targetYawRad, sign)` is the verify-side equivalent for switch-saved-joints replay. `worldstate.GripperHeldBox(name, linkName, dims)` builds the held-box `*LinkInFrame` with the correct `+H/2` gripper-local offset baked in — dryrun-2 mis-diagnosed the sign three times before landing on `+H/2`. `viz.AttachToGripper(uuid, gripperName, dims, color)` is the same convention for the 3D-scene visualization. Plus `contracts.GetPackOrderResponse` + `contracts.PackOrderPlacement` typed structs so consumers don't silent-zero the `placements` / `pose_in_world` / bare-`width_mm` fields like the dryrun-4 hand-roll did.
+- **v0.14.0** — `operatorapp`: serve a module's operator web app from an `fs.FS` (`Handler` / `ListenAndServe`) and inject the machine-credential cookies the browser SDK reads (`part-id` / `host` / `api-key-id` / `api-key`, from the `VIAM_*` env vars by default). Collapses the per-module hand-copied webserver and the `viam module local-app-testing` proxy into one `cmd/cli` entrypoint plus a `static/` embed. Built for the training curriculum's operator-app section so students import one helper instead of copying HTTP/cookie plumbing.
 
 ## Design conventions
 
@@ -135,11 +137,14 @@ viamkit/
 │   ├── worldstate.go    (NewBoxObstacle, NewSphereObstacle, HeldObject, GripperHeldBox, WorldObstacles, Combined)
 │   ├── worldstate_test.go
 │   └── held_test.go
-└── verify/
-    ├── doc.go
-    ├── plan.go          (MarshalPlanRequest, ParsePlanResponse, Plan)
-    ├── trajectory.go    (TrajectoryToEEPoses)
-    └── verify_test.go
+├── verify/
+│   ├── doc.go
+│   ├── plan.go          (MarshalPlanRequest, ParsePlanResponse, Plan)
+│   ├── trajectory.go    (TrajectoryToEEPoses)
+│   └── verify_test.go
+└── operatorapp/
+    ├── operatorapp.go   (Handler, ListenAndServe, Credentials, CredentialsFromEnv, WithCredentials)
+    └── operatorapp_test.go
 ```
 
 ## What's NOT in viamkit (and won't be)

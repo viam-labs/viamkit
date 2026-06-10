@@ -39,6 +39,7 @@ between minor versions (see [Versioning](#versioning)).
 | `viz` | `commonpb.Transform` builders for WorldStateStore producers — the live 3D scene viewer. Includes `viz/axes` for coordinate triads. |
 | `worldstate` | `referenceframe.WorldState` composition for motion planning: obstacle constructors, held-object attachment, static + dynamic merge. |
 | `verify` | "Plan but don't execute" wrapper around the motion service's `DoCommand("plan", …)` path. |
+| `operatorapp` | Serves a module's operator web app: hosts the static frontend and injects the machine-credential cookies the browser SDK reads, so a plain HTML/JS page authenticates to the cell with no separate proxy. |
 
 Every package carries a thorough package-level doc comment — `go doc
 github.com/viam-labs/viamkit/<pkg>` (or pkg.go.dev) is the reference for the
