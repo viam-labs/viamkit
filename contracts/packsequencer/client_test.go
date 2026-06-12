@@ -1,9 +1,11 @@
-package contracts
+package packsequencer
 
 import (
 	"context"
 	"errors"
 	"testing"
+
+	"github.com/viam-labs/viamkit/contracts"
 )
 
 // fakeDoCommander records the request and returns a canned reply/error.
@@ -21,7 +23,7 @@ func (f *fakeDoCommander) DoCommand(_ context.Context, cmd map[string]interface{
 	return f.reply, nil
 }
 
-func TestNextBoxClient(t *testing.T) {
+func TestNextBox(t *testing.T) {
 	f := &fakeDoCommander{reply: map[string]interface{}{
 		"seq":         3,
 		"is_complete": false,
@@ -31,23 +33,23 @@ func TestNextBoxClient(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NextBox: %v", err)
 	}
-	if _, ok := f.gotCmd[VerbNextBox]; !ok {
-		t.Fatalf("request missing verb %q: %v", VerbNextBox, f.gotCmd)
+	if _, ok := f.gotCmd[contracts.VerbNextBox]; !ok {
+		t.Fatalf("request missing verb %q: %v", contracts.VerbNextBox, f.gotCmd)
 	}
 	if resp.Seq != 3 || resp.IsComplete || resp.Total != 8 {
 		t.Errorf("decoded wrong: %+v", resp)
 	}
 }
 
-func TestReportPlacementClient_NestsRequestUnderVerb(t *testing.T) {
+func TestReportPlacement_NestsRequestUnderVerb(t *testing.T) {
 	f := &fakeDoCommander{reply: map[string]interface{}{"acknowledged": true, "next_seq": 4}}
 	resp, err := ReportPlacement(context.Background(), f, ReportPlacementRequest{Seq: 3, Success: true})
 	if err != nil {
 		t.Fatalf("ReportPlacement: %v", err)
 	}
-	body, ok := f.gotCmd[VerbReportPlacement].(map[string]interface{})
+	body, ok := f.gotCmd[contracts.VerbReportPlacement].(map[string]interface{})
 	if !ok {
-		t.Fatalf("request body not nested under %q: %v", VerbReportPlacement, f.gotCmd)
+		t.Fatalf("request body not nested under %q: %v", contracts.VerbReportPlacement, f.gotCmd)
 	}
 	if body["seq"].(float64) != 3 || body["success"].(bool) != true {
 		t.Errorf("encoded request wrong: %v", body)
@@ -57,12 +59,12 @@ func TestReportPlacementClient_NestsRequestUnderVerb(t *testing.T) {
 	}
 }
 
-func TestResetCursorClient_PropagatesError(t *testing.T) {
+func TestResetCursor_PropagatesError(t *testing.T) {
 	f := &fakeDoCommander{err: errors.New("boom")}
 	if err := ResetCursor(context.Background(), f); err == nil {
 		t.Fatal("expected error to propagate")
 	}
-	if _, ok := f.gotCmd[VerbResetCursor]; !ok {
-		t.Fatalf("request missing verb %q: %v", VerbResetCursor, f.gotCmd)
+	if _, ok := f.gotCmd[contracts.VerbResetCursor]; !ok {
+		t.Fatalf("request missing verb %q: %v", contracts.VerbResetCursor, f.gotCmd)
 	}
 }

@@ -55,6 +55,7 @@ Version bumps so far:
 - **v0.13.0** — four helpers from the 2026-05-18 dryrun's findings. `kinematics.PreRotatedJoints(currentJoints, currentEEXY, currentEEYawRad, targetXY, targetYawRad, sign)` derives J0+J5 in joint space so the cartesian planner starts in a feasible region (closes the recurring "long transit deadline-exceeds under orientation-lock" finding). `kinematics.AlignStartJointsToPlaceYaw(savedJoints, savedYawRad, targetYawRad, sign)` is the verify-side equivalent for switch-saved-joints replay. `worldstate.GripperHeldBox(name, linkName, dims)` builds the held-box `*LinkInFrame` with the correct `+H/2` gripper-local offset baked in — dryrun-2 mis-diagnosed the sign three times before landing on `+H/2`. `viz.AttachToGripper(uuid, gripperName, dims, color)` is the same convention for the 3D-scene visualization. Plus `contracts.GetPackOrderResponse` + `contracts.PackOrderPlacement` typed structs so consumers don't silent-zero the `placements` / `pose_in_world` / bare-`width_mm` fields like the dryrun-4 hand-roll did.
 - **v0.14.0** — `operatorapp`: serve a module's operator web app from an `fs.FS` (`Handler` / `ListenAndServe`) and inject the machine-credential cookies the browser SDK reads (`part-id` / `host` / `api-key-id` / `api-key`, from the `VIAM_*` env vars by default). Collapses the per-module hand-copied webserver and the `viam module local-app-testing` proxy into one `cmd/cli` entrypoint plus a `static/` embed. Built for the training curriculum's operator-app section so students import one helper instead of copying HTTP/cookie plumbing.
 - **v0.15.0** — `contracts` typed *client* helpers for the pack-sequencer verbs (`NextBox`, `ReportPlacement`, `GetBoxDims`, `GetPalletHome`, `GetPackOrder`, `GetProgress`, `ResetCursor`, `SetBoxTransform`, `ClearBoxTransform`, `SkipBox`) behind a thin rdk-free `DoCommander` interface. Each wraps the `DoCommand` + `ToMap`/`FromMap` round-trip so a consumer writes `resp, err := contracts.NextBox(ctx, svc)` instead of hand-rolling the map keys and codec call. Purely additive — the producer and the existing types / verb constants / codec helpers are unchanged. Built for the training curriculum's pack-sequencer section so students call a verb instead of plumbing the wire format.
+- **v0.16.0** — moved the v0.15.0 client helpers into a `contracts/packsequencer` sub-package: call sites become `packsequencer.NextBox(ctx, svc)` etc., scoping the verb wrappers to the service they belong to (and leaving room for `contracts/pallet` / `contracts/pickstation` clients later). The request/response types are re-exported as aliases of the parent `contracts` structs (`type NextBoxResponse = contracts.NextBoxResponse`), so the producer's `contracts.NextBoxResponse` keeps working — non-breaking for the pack-sequencer module. The flat `contracts.NextBox` form from v0.15.0 is removed; consumers move to `packsequencer.NextBox`.
 
 ## Design conventions
 
@@ -91,7 +92,8 @@ viamkit/
 │   ├── pickstation.go   (verb constants + typed structs)
 │   ├── pallet.go        (verb constants + typed structs)
 │   ├── codec_test.go
-│   └── wire_shape_test.go
+│   ├── wire_shape_test.go
+│   └── packsequencer/   (typed client: packsequencer.NextBox(ctx, svc), … + type aliases)
 ├── lifecycle/
 │   ├── lifecycle.go
 │   └── lifecycle_test.go
