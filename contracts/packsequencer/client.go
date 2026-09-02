@@ -27,25 +27,52 @@ type DoCommander interface {
 	DoCommand(ctx context.Context, cmd map[string]interface{}) (map[string]interface{}, error)
 }
 
-// Wire types, aliased from the parent contracts package so call sites read
-// `packsequencer.NextBoxResponse` etc. These are the same structs the
-// pack-sequencer producer emits — the alias keeps a single definition.
-type (
-	NextBoxResponse          = contracts.NextBoxResponse
-	ApproachOffset           = contracts.ApproachOffset
-	BoxDimensions            = contracts.BoxDimensions
-	ReportPlacementRequest   = contracts.ReportPlacementRequest
-	ReportPlacementResponse  = contracts.ReportPlacementResponse
-	GetBoxDimsResponse       = contracts.GetBoxDimsResponse
-	GetPalletHomeResponse    = contracts.GetPalletHomeResponse
-	GetPackOrderResponse     = contracts.GetPackOrderResponse
-	PackOrderPlacement       = contracts.PackOrderPlacement
-	GetProgressResponse      = contracts.GetProgressResponse
-	SetBoxTransformRequest   = contracts.SetBoxTransformRequest
-	SetBoxTransformResponse  = contracts.SetBoxTransformResponse
-	ClearBoxTransformRequest = contracts.ClearBoxTransformRequest
-	SkipBoxRequest           = contracts.SkipBoxRequest
-)
+// Wire types re-exported from the parent contracts package, so call sites read
+// `packsequencer.NextBoxResponse` etc. Each is an alias, not a copy: these are
+// the same structs the pack-sequencer producer emits, so there is exactly one
+// definition of the wire format and the two ends cannot drift.
+
+// NextBoxResponse is the pack-sequencer's reply to next_box.
+type NextBoxResponse = contracts.NextBoxResponse
+
+// ApproachOffset is the per-placement approach vector carried in a next_box reply.
+type ApproachOffset = contracts.ApproachOffset
+
+// BoxDimensions is a box's length/width/height in millimetres.
+type BoxDimensions = contracts.BoxDimensions
+
+// ReportPlacementRequest is the argument to report_placement.
+type ReportPlacementRequest = contracts.ReportPlacementRequest
+
+// ReportPlacementResponse is the pack-sequencer's reply to report_placement.
+type ReportPlacementResponse = contracts.ReportPlacementResponse
+
+// GetBoxDimsResponse is the pack-sequencer's reply to get_box_dims.
+type GetBoxDimsResponse = contracts.GetBoxDimsResponse
+
+// GetPalletHomeResponse is the pack-sequencer's reply to get_pallet_home.
+type GetPalletHomeResponse = contracts.GetPalletHomeResponse
+
+// GetPackOrderResponse is the pack-sequencer's reply to get_pack_order.
+type GetPackOrderResponse = contracts.GetPackOrderResponse
+
+// PackOrderPlacement is one placement entry within a pack order.
+type PackOrderPlacement = contracts.PackOrderPlacement
+
+// GetProgressResponse is the pack-sequencer's reply to get_progress.
+type GetProgressResponse = contracts.GetProgressResponse
+
+// SetBoxTransformRequest is the argument to set_box_transform.
+type SetBoxTransformRequest = contracts.SetBoxTransformRequest
+
+// SetBoxTransformResponse is the pack-sequencer's reply to set_box_transform.
+type SetBoxTransformResponse = contracts.SetBoxTransformResponse
+
+// ClearBoxTransformRequest is the argument to clear_box_transform.
+type ClearBoxTransformRequest = contracts.ClearBoxTransformRequest
+
+// SkipBoxRequest is the argument to skip_box.
+type SkipBoxRequest = contracts.SkipBoxRequest
 
 // NextBox asks the pack-sequencer for the next box's placement.
 func NextBox(ctx context.Context, svc DoCommander) (NextBoxResponse, error) {
